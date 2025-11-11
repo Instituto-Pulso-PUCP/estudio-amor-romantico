@@ -1,0 +1,1933 @@
+---
+title: "Descriptivos factores"
+author: "alexandra Porras"
+date: "2025-09-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(haven)
+library(dplyr)
+library(sjlabelled)
+library(openxlsx)
+library(rio)
+library(expss)
+library(mice)
+library(ggplot2)
+library(tidyverse)
+library(ggcorrplot)
+library(psych)
+library(corrplot)
+```
+
+```{r}
+data<-haven::read_sav("Amor_romantico_SUBDATA_PUCP.sav")
+```
+
+# Factores
+
+Se crean los factores a partir del modelo aprobado por las investigadoras. Las variables con la puntuación total por factor comienzan con "f_".
+```{r}
+# Puntaje por factor
+data_factores <- data |>
+  mutate(
+    f_estereotipos_genero = rowSums(across(all_of(c("q0015_0001","q0015_0002","q0015_0003","q0015_0004","q0015_0005"))), na.rm = TRUE), 
+    
+    f_mitos_amor_maltrato = rowSums(across(all_of(c("q0014_0006","q0014_0008","q0014_0005","q0014_0007")))),
+    f_mitos_idealizacion = rowSums(across(all_of(c("q0013_0002","q0014_0001","q0013_0001","q0013_0006","q0013_0004","q0013_0005")))),
+    f_mitos_celos = rowSums(across(all_of(c("q0014_0002","q0014_0003","q0014_0004","q0014_0010","q0013_0008")))),
+    f_mitos_despersonalizacion = rowSums(across(all_of(c("q0013_0007","q0014_0009","q0013_0010","q0013_0009")))),
+
+    f_tolerancia_viol_sexual = rowSums(across(all_of(c("q0016_0007","q0016_0008","q0016_0009","q0016_0010","q0017_0008","q0017_0010")))),
+    f_tolerancia_agresiones_verbales = rowSums(across(all_of(c("q0017_0006","q0017_0007","q0016_0002","q0017_0005")))),
+    f_tolerancia_control = rowSums(across(all_of(c("q0016_0001","q0016_0003","q0016_0004","q0017_0001","q0017_0002","q0017_0003")))),
+    f_tolerancia_viol_fisica = rowSums(across(all_of(c("q0017_0004","q0016_0005","q0016_0006")))),
+    
+    f_victimizacion_viol_sexual = rowSums(across(all_of(c("q0020_0007","q0020_0008","q0020_0009", "q0020_0010", "q0021_0008", "q0021_0010")))),
+    f_victimizacion_agresiones_verbales = rowSums(across(all_of(c("q0020_0002","q0021_0005","q0021_0006","q0021_0007")))),
+    f_victimizacion_control = rowSums(across(all_of(c("q0020_0001", "q0020_0003", "q0020_0004","q0021_0001", "q0021_0002", "q0021_0003")))),
+    f_victimizacion_viol_fisica = rowSums(across(all_of(c("q0020_0005","q0020_0006","q0021_0004")))),
+    
+    f_perpetracion_viol_sexual = rowSums(across(all_of(c("q0022_0007","q0022_0008","q0022_0009", "q0022_0010","q0023_0008","q0023_0010")))),
+    f_perpetracion_agresiones_verbales = rowSums(across(all_of(c("q0022_0002","q0023_0005","q0023_0006","q0023_0007")))),
+    f_perpetracion_control = rowSums(across(all_of(c("q0022_0001","q0022_0003","q0022_0004","q0023_0001","q0023_0002","q0023_0003")))),
+    f_perpetracion_viol_fisica = rowSums(across(all_of(c("q0022_0005","q0022_0006","q0023_0004")))),
+  )
+```
+
+```{r}
+lapply(data_factores[,c("f_estereotipos_genero","f_mitos_amor_maltrato","f_mitos_idealizacion","f_mitos_celos","f_mitos_despersonalizacion","f_tolerancia_viol_sexual", "f_tolerancia_agresiones_verbales","f_tolerancia_control","f_tolerancia_viol_fisica", "f_victimizacion_viol_sexual", "f_victimizacion_agresiones_verbales","f_victimizacion_control", "f_victimizacion_viol_fisica")],function(x) sum(is.na(x)))
+```
+
+```{r}
+table(data_factores$SEXO)
+```
+
+```{r}
+# Promedio por factor
+data_factores <- data_factores |>
+  rowwise() |>
+  mutate(f_estereotipos_genero_prom = mean(c_across(c(q0015_0001:q0015_0005))[c_across(c(q0015_0001:q0015_0005)) > 0], na.rm = TRUE))|> # En los casos que hay NA, no los toma en consideración para los promedios
+  ungroup()
+
+data_factores <- data_factores |>
+  rowwise() |>
+  mutate(
+    f_mitos_amor_maltrato_prom = mean(c_across(c(q0014_0006, q0014_0008, q0014_0005, q0014_0007))[c_across(c(q0014_0006, q0014_0008, q0014_0005, q0014_0007)) > 0]),
+    f_mitos_idealizacion_prom = mean(c_across(c(q0013_0002, q0014_0001, q0013_0001, q0013_0006, q0013_0004, q0013_0005))[c_across(c(q0013_0002, q0014_0001, q0013_0001, q0013_0006, q0013_0004, q0013_0005)) > 0], na.rm = TRUE),
+    f_mitos_celos_prom = mean(c_across(c(q0014_0002, q0014_0003, q0014_0004, q0014_0010, q0013_0008))[c_across(c(q0014_0002, q0014_0003, q0014_0004, q0014_0010, q0013_0008)) > 0]),
+    f_mitos_despersonalizacion_prom = mean(c_across(c(q0013_0007, q0014_0009, q0013_0010, q0013_0009))[c_across(c(q0013_0007, q0014_0009, q0013_0010, q0013_0009)) > 0]))|>
+  ungroup()
+
+
+data_factores <- data_factores |>
+  rowwise() |>
+  mutate(
+    f_tolerancia_viol_sexual_prom = mean(c_across(c(q0016_0007, q0016_0008, q0016_0009, q0016_0010, q0017_0008, q0017_0010))[c_across(c(q0016_0007, q0016_0008, q0016_0009, q0016_0010, q0017_0008, q0017_0010)) > 0]),
+    f_tolerancia_agresiones_verbales_prom= mean(c_across(c(q0017_0006, q0017_0007, q0016_0002, q0017_0005))[c_across(c(q0017_0006, q0017_0007, q0016_0002, q0017_0005)) > 0]),
+    f_tolerancia_control_prom = mean(c_across(c(q0016_0001, q0016_0003, q0016_0004, q0017_0001, q0017_0002, q0017_0003))[c_across(c(q0016_0001, q0016_0003, q0016_0004, q0017_0001, q0017_0002, q0017_0003)) > 0]),
+    f_tolerancia_viol_fisica_prom = mean(c_across(c(q0017_0004, q0016_0005, q0016_0006))[c_across(c(q0017_0004, q0016_0005, q0016_0006)) > 0])
+  ) |>
+  ungroup()
+
+data_factores <- data_factores |>
+  rowwise() |>
+  mutate(
+    f_victimizacion_viol_sexual_prom = mean(c_across(c(q0020_0007, q0020_0008, q0020_0009, q0020_0010, q0021_0008, q0021_0010
+))[c_across(c(q0020_0007, q0020_0008, q0020_0009, q0020_0010, q0021_0008, q0021_0010)) > 0]),
+    f_victimizacion_agresiones_verbales_prom= mean(c_across(c(q0020_0002, q0021_0005, q0021_0006, q0021_0007))[c_across(c(q0020_0002, q0021_0005, q0021_0006, q0021_0007)) > 0]),
+    f_victimizacion_control_prom = mean(c_across(c(q0020_0001, q0020_0003, q0020_0004, q0021_0001, q0021_0002, q0021_0003))[c_across(c(q0020_0001, q0020_0003, q0020_0004, q0021_0001, q0021_0002, q0021_0003)) > 0]),
+    f_victimizacion_viol_fisica_prom = mean(c_across(c(q0020_0005, q0020_0006, q0021_0004))[c_across(c(q0020_0005, q0020_0006, q0021_0004)) > 0])
+  ) |>
+  ungroup()
+
+
+data_factores <- data_factores |>
+  rowwise() |>
+  mutate(
+    f_perpetracion_viol_sexual_prom = mean(c_across(c(q0022_0007, q0022_0008, q0022_0009, q0022_0010, q0023_0008, q0023_0010
+))[c_across(c(q0022_0007, q0022_0008, q0022_0009, q0022_0010, q0023_0008, q0023_0010)) > 0]),
+    f_perpetracion_agresiones_verbales_prom= mean(c_across(c(q0022_0002, q0023_0005, q0023_0006, q0023_0007))[c_across(c(q0022_0002, q0023_0005, q0023_0006, q0023_0007)) > 0]),
+    f_perpetracion_control_prom = mean(c_across(c(q0022_0001, q0022_0003, q0022_0004, q0023_0001, q0023_0002, q0023_0003))[c_across(c(q0022_0001, q0022_0003, q0022_0004, q0023_0001, q0023_0002, q0023_0003)) > 0]),
+    f_perpetracion_viol_fisica_prom = mean(c_across(c(q0022_0005, q0022_0006, q0023_0004))[c_across(c(q0022_0005, q0022_0006, q0023_0004)) > 0])
+  ) |>
+  ungroup()
+```
+
+```{r}
+#SEXO
+data_factores$SEXO <- factor(
+  data_factores$SEXO,
+  levels = c("F", "M"),
+  labels = c("Femenino", "Masculino"))
+```
+
+# Descriptivos
+
+## Factor Estereotipos de género
+
+### Gráficos
+```{r}
+# General
+ggplot(data_factores, aes(x = f_estereotipos_genero)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "white") +
+  labs(
+    title = "Distribución de la escala: Estereotipos de género",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_estereotipos_genero)) +
+  geom_boxplot(fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Boxplot de la escala: Estereotipos de género",
+    y = "Puntaje total"
+  ) +
+  theme_minimal(base_size = 14)
+
+#Por sexo
+ggplot(data_factores, aes(x = f_estereotipos_genero)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(
+    title = "Distribución de estereotipos de género por sexo",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_estereotipos_genero_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+    title = "Boxplot de estereotipos de género por sexo",
+    x = "Sexo",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+tab_estereotipos<- data_factores|>
+  tab_cells(q0015_0001,q0015_0002,q0015_0003,q0015_0004,q0015_0005)|> 
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot()|>
+  set_caption("Distribución de variables estereotipos de género")
+tab_estereotipos
+
+tab_estereotipos_prom<-data_factores|>
+  #set_var_lab(f_estereotipos_genero_prom= "A")|>
+  tab_cells(f_estereotipos_genero_prom)|> # promedios
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot()|>
+  set_caption("Distribución de promedios(%)")
+tab_estereotipos_prom
+
+estereotipos_genero <- c("q0015_0001","q0015_0002","q0015_0003","q0015_0004","q0015_0005")
+
+data_factores<-data_factores |>
+  #drop_na(all_of(estereotipos_genero))|>
+  mutate(
+    Acuerdo_estereotipos_dummy = case_when(
+      q0015_0001 <= 2 | q0015_0002 <= 2 | q0015_0003 <= 2 | q0015_0004 <= 2 |q0015_0005 <= 2 ~ 1,
+      q0015_0001 >= 3 & q0015_0002 >= 3 & q0015_0003 >= 3 & q0015_0004 >= 3 & q0015_0005 >= 3~ 0,
+      TRUE ~ NA_real_
+    ))|>
+  apply_labels(
+    Acuerdo_estereotipos_dummy = "Factor estereotipos de género",
+    Acuerdo_estereotipos_dummy = c(
+      "De acuerdo con al menos una variable" = 1,
+      "En desacuerdo con todas las variables"     = 0
+    ))
+  
+tab_estereotipos_dummy<-data_factores |>
+  tab_cells(Acuerdo_estereotipos_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_estereotipos_dummy
+```
+
+```{r}
+data_factores<-data_factores |>
+  mutate(
+    n_acuerdo_est = rowSums(across(all_of(estereotipos_genero), ~ !is.na(.x) & .x <= 2))) |>
+  apply_labels(n_acuerdo_est = "Estereotipos con los que está de acuerdo")
+
+tab_n_estereotipos<-data_factores |>
+  tab_cells(n_acuerdo_est) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_estereotipos
+```
+```{r}
+data_factores |>
+  select(all_of(estereotipos_genero),n_acuerdo_est)|>
+  filter(n_acuerdo_est==1)
+
+data_factores |>
+  filter(n_acuerdo_est == 1) |>
+  select(all_of(estereotipos_genero)) |>
+  mutate(across(everything(), ~ .x %in% c(1, 2))) |>
+  summarise(across(everything(), ~ mean(.x, na.rm = TRUE))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "porcentaje_acuerdo") |>
+  mutate(porcentaje_acuerdo = round(porcentaje_acuerdo * 100, 1)) |>
+  arrange(desc(porcentaje_acuerdo))
+
+data_factores |>
+  filter(n_acuerdo_est == 1) |>
+  group_by(SEXO) |>
+  summarise(across(all_of(estereotipos_genero), ~ mean(.x %in% c(1, 2), na.rm = TRUE))) |>
+  pivot_longer(
+    cols = -SEXO,
+    names_to = "variable",
+    values_to = "porcentaje_acuerdo"
+  ) |>
+  mutate(porcentaje_acuerdo = round(porcentaje_acuerdo * 100, 1)) |>
+  arrange(SEXO, desc(porcentaje_acuerdo))
+```
+
+##Factor Mitos amor-maltrato
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_mitos_amor_maltrato)) +
+  geom_histogram(binwidth = 1, fill = "orange", color = "white") +
+  labs(
+    title = "Distribución de la escala: mitos amor-maltrato",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_mitos_amor_maltrato)) +
+  geom_boxplot(fill = "orange", color = "black", alpha = 0.7) +
+  labs(
+    title = "Boxplot de la escala: mitos amor-maltrato",
+    y = "Puntaje total"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_mitos_amor_maltrato)) +
+  geom_histogram(binwidth = 1, fill = "orange", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(
+    #title = "Distribución de estereotipos de género por sexo",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_mitos_amor_maltrato_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+   # title = "Boxplot de estereotipos de género por sexo",
+    x = "Sexo",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+
+```{r}
+tab_amor_maltrato<-data_factores|>
+tab_cells(q0014_0006,q0014_0008,q0014_0005,q0014_0007)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")|>
+  set_caption("Distribución de variables ")
+tab_amor_maltrato
+  
+data_factores<-data_factores |>
+  mutate(
+    Acuerdo_mitos_amor_maltrato_dummy = case_when(
+      q0014_0006 <= 2 | q0014_0008 <= 2 | q0014_0005 <= 2 | q0014_0007 <= 2 ~ 1,
+      q0014_0006 >= 3 & q0014_0008 >= 3 & q0014_0005 >= 3 & q0014_0007 >= 3 ~ 0,
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    Acuerdo_mitos_amor_maltrato_dummy = "Acuerdo con mitos de amor-maltrato",
+    Acuerdo_mitos_amor_maltrato_dummy = c(
+      "De acuerdo con al menos una variable" = 1,
+      "En desacuerdo con todas las variables"     = 0))
+
+tab_amor_maltrato_dummy<-data_factores |>
+  tab_cells(Acuerdo_mitos_amor_maltrato_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_amor_maltrato_dummy
+
+tab_amor_maltrato_prom<-data_factores|>
+  tab_cells(f_mitos_amor_maltrato_prom)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")|>
+  set_caption("Distribución de promedios")
+tab_amor_maltrato_prom
+```
+```{r}
+amor_maltrato <- c("q0014_0006","q0014_0008","q0014_0005","q0014_0007")
+
+data_factores<-data_factores |>
+  mutate(n_acuerdo_amor_maltrato = rowSums(across(all_of(amor_maltrato), ~ !is.na(.x) & .x <= 2))) |>
+  apply_labels(n_acuerdo_amor_maltrato = "N° Mitos de amor-maltrato con los que está de acuerdo")
+
+tab_n_amor_maltrato<-data_factores |>
+  tab_cells(n_acuerdo_amor_maltrato) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_amor_maltrato
+```
+```{r}
+data_factores |>
+  filter(n_acuerdo_amor_maltrato == 1) |>
+  select(all_of(amor_maltrato), n_acuerdo_amor_maltrato)
+
+data_factores |>
+  filter(n_acuerdo_amor_maltrato == 1) |>
+  select(all_of(amor_maltrato)) |>
+  mutate(across(everything(), ~ .x %in% c(1, 2))) |>
+  summarise(across(everything(), ~ mean(.x, na.rm = TRUE))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "porcentaje_acuerdo") |>
+  mutate(porcentaje_acuerdo = round(porcentaje_acuerdo * 100, 1)) |>
+  arrange(desc(porcentaje_acuerdo))
+
+data_factores |>
+  filter(n_acuerdo_amor_maltrato == 1) |>
+  group_by(SEXO) |>
+  summarise(across(all_of(amor_maltrato), ~ mean(.x %in% c(1, 2), na.rm = TRUE))) |>
+  pivot_longer(
+    cols = -SEXO,
+    names_to = "variable",
+    values_to = "porcentaje_acuerdo"
+  ) |>
+  mutate(porcentaje_acuerdo = round(porcentaje_acuerdo * 100, 1)) |>
+  arrange(SEXO, desc(porcentaje_acuerdo))
+```
+
+## Factor Mitos idealización
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_mitos_idealizacion)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(
+    title = "Distribución de la escala: mitos idealización del amor",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_mitos_idealizacion_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(
+    title = "Boxplot de la escala: mitos idealización del amor",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_mitos_idealizacion)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(
+    #title = "",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_mitos_idealizacion_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+```{r}
+tab_mitos_idealizacion <-data_factores|>
+  tab_cells(q0013_0002,q0014_0001,q0013_0001,q0013_0006,q0013_0004,q0013_0005)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")
+tab_mitos_idealizacion
+
+tab_mitos_idealizacion_prom <-data_factores|>
+  tab_cells(f_mitos_idealizacion_prom)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")
+tab_mitos_idealizacion_prom
+
+data_factores<-data_factores |>
+  mutate(
+    Acuerdo_mitos_idealizacion_dummy = case_when(
+      q0013_0002 <= 2 | q0014_0001 <= 2 | q0013_0001 <= 2 | q0013_0006 <= 2 | q0013_0004 <= 2 | q0013_0005 <= 2~ 1, 
+      q0013_0002 >= 3 & q0014_0001 >= 3 & q0013_0001 >= 3 & q0013_0006 >= 3 & q0013_0004 >= 3 & q0013_0005 >= 3 ~ 0,
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    Acuerdo_mitos_idealizacion_dummy = "Acuerdo con mitos idealización",
+    Acuerdo_mitos_idealizacion_dummy = c(
+      "De acuerdo con al menos una variable" = 1,
+      "En desacuerdo con todas las variables" = 0))
+
+tab_idealizacion_dummy<-data_factores |>
+  tab_cells(Acuerdo_mitos_idealizacion_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_idealizacion_dummy
+```
+```{r}
+idealizacion <- c("q0013_0002","q0014_0001","q0013_0001","q0013_0006","q0013_0004","q0013_0005")
+
+data_factores<-data_factores |>
+  mutate(n_acuerdo_idealizacion = rowSums(across(all_of(idealizacion), ~ !is.na(.x) & .x <= 2))) |>
+  apply_labels(n_acuerdo_idealizacion = "N° Mitos idealización con los que está de acuerdo")
+  
+tab_n_idealizacion<-data_factores |>
+  tab_cells(n_acuerdo_idealizacion) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_idealizacion
+```
+```{r}
+# De acuerdo con 1
+data_factores |>
+  filter(n_acuerdo_idealizacion == 1) |>
+  select(all_of(idealizacion), n_acuerdo_idealizacion)
+
+# De acuerdo con 2
+data_factores |>
+  filter(n_acuerdo_idealizacion == 2) |>
+   select(all_of(idealizacion), n_acuerdo_idealizacion)
+```
+
+## Factor Mitos celos
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_mitos_celos)) +
+  geom_histogram(binwidth = 1, fill = "pink", color = "white") +
+  labs(
+    title = "Distribución de la escala: mitos amor - celos",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_mitos_celos)) +
+  geom_boxplot(fill = "pink", color = "black", alpha = 0.7) +
+  labs(
+    title = "Boxplot de la escala: mitos amor - celos",
+    y = "Puntaje total"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_mitos_celos)) +
+  geom_histogram(binwidth = 1, fill = "pink", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(
+    #title = "",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_mitos_celos_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+   # title = "",
+    x = "Sexo",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+```{r}
+tab_mitos_celos<-data_factores|>
+  tab_cells(q0014_0002,q0014_0003,q0014_0004,q0014_0010,q0013_0008)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")
+tab_mitos_celos
+
+tab_mitos_celos_prom<-data_factores|>
+  tab_cells(f_mitos_celos_prom)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")
+tab_mitos_celos_prom
+
+data_factores<-data_factores |>
+  mutate(
+    Acuerdo_mitos_celos_dummy = case_when(
+      q0014_0002 <= 2 | q0014_0003 <= 2 | q0014_0004 <= 2 | q0014_0010 <= 2 | q0013_0008 <= 2~ 1, 
+      q0014_0002 >= 3 & q0014_0003 >= 3 & q0014_0004 >= 3 & q0014_0010 >= 3 & q0013_0008 >= 3~ 0,
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    Acuerdo_mitos_celos_dummy = "Acuerdo con mitos celos",
+    Acuerdo_mitos_celos_dummy = c(
+      "De acuerdo con al menos una variable" = 1,
+      "En desacuerdo con todas las variables" = 0))
+
+tab_mitos_celos_dummy<-data_factores |>
+  tab_cells(Acuerdo_mitos_celos_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_mitos_celos_dummy
+```
+```{r}
+celos <- c("q0014_0002","q0014_0003","q0014_0004","q0014_0010","q0013_0008")
+
+data_factores<-data_factores |>
+  mutate(
+    n_acuerdo_celos = rowSums(across(all_of(celos), ~ !is.na(.x) & .x <= 2))) |>
+  apply_labels(n_acuerdo_celos = "N° Mitos celos con los que está de acuerdo")
+
+tab_n_celos<-data_factores |>
+  tab_cells(n_acuerdo_celos) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_celos
+```
+```{r}
+# De acuerdo con 1
+data_factores |>
+  filter(n_acuerdo_celos == 1) |>
+  select(all_of(celos), n_acuerdo_celos)
+
+# De acuerdo con 2
+data_factores |>
+  filter(n_acuerdo_celos == 2) |>
+  select(all_of(celos), n_acuerdo_celos)
+```
+
+##Mitos despersonalización
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_mitos_despersonalizacion)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(
+    title = "Distribución de la escala: mitos idealización del amor",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_mitos_despersonalizacion_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(
+    title = "Boxplot de la escala: mitos idealización del amor",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_mitos_despersonalizacion)) +
+  geom_histogram(binwidth = 1, fill = "orange", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(
+    #title = "Distribución de estereotipos de género por sexo",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_mitos_despersonalizacion_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+   # title = "Boxplot de estereotipos de género por sexo",
+    x = "Sexo",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+```{r}
+tab_mitos_despersonalizacion <-data_factores|>
+  tab_cells(q0013_0007,q0014_0009,q0013_0010,q0013_0009)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")|>
+  tab_caption("Districuión Mitos despersonalizacion")
+tab_mitos_despersonalizacion
+
+tab_mitos_despersonalizacion_prom <-data_factores|>
+  tab_cells(f_mitos_despersonalizacion_prom)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")|>
+  tab_caption("Districuión promedios: Mitos despersonalizacion")
+tab_mitos_despersonalizacion_prom
+
+data_factores<-data_factores |>
+  mutate(
+    Acuerdo_mitos_despersonalizacion_dummy = case_when(
+      q0013_0007 <= 2 | q0014_0009 <= 2 | q0013_0010 <= 2 | q0013_0009 <= 2 ~ 1, 
+      q0013_0007 >= 3 & q0014_0009 >= 3 & q0013_0010 >= 3 & q0013_0009 >= 3 ~ 0,
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    Acuerdo_mitos_despersonalizacion_dummy = "Acuerdo con mitos despersonalización",
+    Acuerdo_mitos_despersonalizacion_dummy = c(
+      "De acuerdo con al menos una variable" = 1,
+      "En desacuerdo con todas las variables"     = 0))
+
+tab_mitos_despersonalizacion_dummy<-data_factores |>
+  tab_cells(Acuerdo_mitos_despersonalizacion_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_mitos_despersonalizacion_dummy
+```
+```{r}
+despersonalizacion <- c("q0013_0007","q0014_0009","q0013_0010","q0013_0009") 
+
+data_factores<-data_factores |>
+  mutate(n_acuerdo_despersonalizacion = rowSums(across(all_of(despersonalizacion), ~ !is.na(.x) & .x <= 2))) |>
+  apply_labels(n_acuerdo_despersonalizacion = "N° Mitos celos con los que está de acuerdo")
+
+tab_n_despersonalizacion<-data_factores |>
+  tab_cells(n_acuerdo_despersonalizacion) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_despersonalizacion
+```
+```{r}
+# De acuerdo con 1
+data_factores |>
+  filter(n_acuerdo_despersonalizacion == 1) |>
+  select(all_of(despersonalizacion), n_acuerdo_despersonalizacion)
+
+# De acuerdo con 2
+data_factores |>
+  filter(n_acuerdo_despersonalizacion == 2) |>
+  select(all_of(despersonalizacion), n_acuerdo_despersonalizacion)
+
+#De acuerdo con 3
+data_factores |>
+  filter(n_acuerdo_despersonalizacion == 3) |>
+  select(all_of(despersonalizacion), n_acuerdo_despersonalizacion)
+```
+
+## Tolerancia Violencia Sexual
+
+### Gráficos
+
+```{r}
+ggplot(data_factores, aes(x = f_tolerancia_viol_sexual_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(
+    title = "Distribución de la escala: Tolerancia violencia sexual",
+    x = "Promedio",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_tolerancia_viol_sexual_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(
+    title = "Boxplot de la escala: Tolerancia violencia sexual",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_tolerancia_viol_sexual)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(
+    #title = "",
+    x = "Puntaje total",
+    y = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_tolerancia_viol_sexual_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+###Tablas
+```{r}
+tab_tol_violsexual <-data_factores|>
+  tab_cells(q0016_0007,q0016_0008,q0016_0009,q0016_0010,q0017_0008,q0017_0010)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")|>
+  tab_caption("Tolerancia a que...")
+tab_tol_violsexual
+
+tab_tol_violsexual_prom <-data_factores|>
+  tab_cells(f_tolerancia_viol_sexual_prom)|>
+  tab_cols(total(),SEXO)|>
+  #tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_violsexual_prom
+
+data_factores<-data_factores |>
+  mutate(
+    tolerancia_viol_sexual_dummy = case_when(
+      q0016_0007 > 1 | q0016_0008 > 1 | q0016_0009 > 1 | q0016_0010 > 1 | q0017_0008 > 1 | q0017_0010 > 1 ~ 1, #tolera al menos una 
+      q0016_0007 == 1 & q0016_0008 == 1 & q0016_0009 == 1 & q0016_0010 == 1 & q0017_0008 == 1 & q0017_0010 == 1 ~ 0, #no tolera ninguna 
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    tolerancia_viol_sexual_dummy = "Tolerancia con violencia sexual",
+    tolerancia_viol_sexual_dummy = c(
+      "Tolera al menos una variable" = 1,
+      "No tolera ninguna de las variables"= 0))
+  
+tab_tol_violsexual_dummy<-data_factores |>
+  tab_cells(tolerancia_viol_sexual_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_violsexual_dummy
+```
+```{r}
+violencia_sexual <- c("q0016_0007","q0016_0008","q0016_0009","q0016_0010","q0017_0008","q0017_0010") 
+
+data_factores<-data_factores |>
+  mutate(n_tolerancia_violencia_sexual = rowSums(across(all_of(violencia_sexual), ~ !is.na(.x) & .x > 1))) |>
+  apply_labels(n_tolerancia_violencia_sexual = "N° acciones de violencia sexual que tolera")
+
+tab_n_tolerancia_viol_sexual<-data_factores |>
+  tab_cells(n_tolerancia_violencia_sexual) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_tolerancia_viol_sexual
+```
+```{r}
+# Tolera 1
+data_factores |>
+  filter(n_tolerancia_violencia_sexual == 1) |>
+  select(all_of(violencia_sexual), n_tolerancia_violencia_sexual)
+
+# Tolera 2
+data_factores |>
+  filter(n_tolerancia_violencia_sexual == 2) |>
+  select(all_of(violencia_sexual), n_tolerancia_violencia_sexual)
+```
+
+## Tolerancia agresión verbal
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_tolerancia_agresiones_verbales_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Tolerancia agresiones verbales",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_tolerancia_agresiones_verbales_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Tolerancia agresiones verbales",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_tolerancia_agresiones_verbales_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_tolerancia_agresiones_verbales_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+```{r}
+tab_tol_agresiones_verbales <-data_factores|>
+  tab_cells(q0017_0006,q0017_0007,q0016_0002,q0017_0005)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")|>
+  tab_caption("Tolerancia a que...")
+tab_tol_agresiones_verbales
+
+tab_tol_agresiones_verbales_prom <-data_factores|>
+  tab_cells(f_tolerancia_agresiones_verbales_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|>
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_agresiones_verbales_prom
+
+data_factores<-data_factores |>
+  mutate(
+    tolerancia_agresion_verbal_dummy = case_when(
+      q0017_0006 > 1 | q0017_0007 > 1 | q0016_0002 > 1 | q0017_0005 > 1 ~ 1,
+      q0017_0006 == 1 & q0017_0007 == 1 & q0016_0002 == 1 & q0017_0005 == 1 ~ 0, 
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    tolerancia_agresion_verbal_dummy = "Tolerancia agresiones verbales",
+    tolerancia_agresion_verbal_dummy = c(
+      "Tolera al menos una de las variables" = 1,
+      "No tolera ninguna variable"= 0))
+
+tab_tol_agresiones_verbales_dummy<-data_factores |>
+  tab_cells(tolerancia_agresion_verbal_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_agresiones_verbales_dummy
+```
+
+```{r}
+agresiones_verbales <- c("q0017_0006","q0017_0007","q0016_0002","q0017_0005") 
+
+data_factores<-data_factores |>
+  mutate(n_tolerancia_agresiones_verbales = rowSums(across(all_of(agresiones_verbales), ~ !is.na(.x) & .x > 1))) |>
+  apply_labels(n_tolerancia_agresiones_verbales = "N° variables de agresiones verbales que tolera")
+
+tab_n_tol_agresiones_verbales<-data_factores |>
+  tab_cells(n_tolerancia_agresiones_verbales) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_tol_agresiones_verbales
+```
+```{r}
+# Tolera 1
+data_factores |>
+  filter(n_tolerancia_agresiones_verbales == 1) |>
+  select(all_of(agresiones_verbales), n_tolerancia_agresiones_verbales)
+
+# Tolera 2
+data_factores |>
+  filter(n_tolerancia_agresiones_verbales == 2) |>
+  select(all_of(agresiones_verbales), n_tolerancia_agresiones_verbales)
+```
+
+## Tolerancia control
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_tolerancia_control_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Tolerancia control",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_tolerancia_control_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Tolerancia control",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_tolerancia_control)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_tolerancia_control_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+```{r}
+tab_tol_control <-data_factores|>
+  tab_cells(q0016_0001,q0016_0003,q0016_0004,q0017_0001,q0017_0002,q0017_0003)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")|>
+  tab_caption("Tolerancia a que...")
+tab_tol_control
+
+tab_tol_control_prom <-data_factores|>
+  tab_cells(f_tolerancia_control_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_control_prom
+
+data_factores<-data_factores |>
+  mutate(
+    tolerancia_control_dummy = case_when(
+      q0016_0001 > 1 | q0016_0003 > 1 | q0016_0004 > 1 | q0017_0001 > 1 | q0017_0002 > 1 | q0017_0003 > 1 ~ 1,
+      q0016_0001 == 1 & q0016_0003 == 1 & q0016_0004 == 1 & q0017_0001 == 1 & q0017_0002 == 1 & q0017_0003 == 1 ~ 0, 
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    tolerancia_control_dummy = "Tolerancia a acciones de control",
+    tolerancia_control_dummy = c(
+      "Tolera al menos una de las variables" = 1,
+      "No tolera ninguna variable"= 0))
+
+tab_tol_control_dummy<-data_factores |>
+  tab_cells(tolerancia_control_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_control_dummy
+```
+```{r}
+control <- c("q0016_0001","q0016_0003","q0016_0004","q0017_0001","q0017_0002","q0017_0003") 
+
+data_factores<-data_factores |>
+  mutate(n_tolerancia_control = rowSums(across(all_of(control), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_tolerancia_control = "N° variables de control que tolera")
+
+tab_n_tol_control<-data_factores |>
+  tab_cells(n_tolerancia_control) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_tol_control
+```
+```{r}
+# Tolera 1
+data_factores |>
+  filter(n_tolerancia_control == 1) |>
+  select(all_of(control), n_tolerancia_control)
+
+# Tolera 2
+data_factores |>
+  filter(n_tolerancia_control == 2) |>
+  select(all_of(control), n_tolerancia_control)
+```
+
+##Tolerancia violencia física
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_tolerancia_viol_fisica_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Tolerancia a violencia física",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_tolerancia_viol_fisica_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Tolerancia a la violencia física",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_tolerancia_viol_fisica_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_tolerancia_viol_fisica_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### Tablas
+```{r}
+tab_tol_viol_fisica <-data_factores|>
+  tab_cells(q0017_0004,q0016_0005,q0016_0006)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")|>
+  tab_caption("Tolerancia a que...")
+tab_tol_viol_fisica
+
+tab_tol_viol_fisica_prom <-data_factores|>
+  tab_cells(f_tolerancia_viol_fisica_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_viol_fisica_prom
+
+data_factores<-data_factores |>
+  mutate(
+    tolerancia_viol_fisica_dummy = case_when(
+      q0017_0004 > 1 | q0016_0005 > 1 | q0016_0006 > 1 ~ 1,
+      q0017_0004 == 1 & q0016_0005 == 1 & q0016_0006 == 1 ~ 0, 
+      TRUE ~ NA_real_))|>
+  apply_labels(
+    tolerancia_viol_fisica_dummy = "Tolerancia a violencia física",
+    tolerancia_viol_fisica_dummy = c(
+      "Tolera al menos una de las variables" = 1,
+      "No tolera ninguna variable"= 0))
+
+tab_tol_viol_fisica_dummy<-data_factores |>
+  tab_cells(tolerancia_viol_fisica_dummy) |>
+  tab_cols(total(), SEXO) |>
+  #tab_stat_cases()|>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_viol_fisica_dummy
+```
+```{r}
+violencia_fisica <- c("q0017_0004","q0016_0005","q0016_0006") 
+
+data_factores<-data_factores |>
+  mutate(n_tolerancia_viol_fisica = rowSums(across(all_of(violencia_fisica), ~ !is.na(.x) & .x > 1))) |>
+  apply_labels(n_tolerancia_viol_fisica = "N° variables de violencia física que tolera")
+
+tab_n_tol_viol_fisica<-data_factores |>
+  tab_cells(n_tolerancia_viol_fisica) |>
+  tab_cols(total(), SEXO) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_tol_viol_fisica
+```
+```{r}
+# Tolera 1
+data_factores |>
+  filter(n_tolerancia_viol_fisica == 1) |>
+  select(all_of(violencia_fisica), n_tolerancia_viol_fisica)
+
+# Tolera 2
+data_factores |>
+  filter(n_tolerancia_viol_fisica == 2) |>
+  select(all_of(violencia_fisica), n_tolerancia_viol_fisica)
+```
+
+## Victimización sexual
+
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_victimizacion_viol_sexual_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Tolerancia a violencia física",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_victimizacion_viol_sexual_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Tolerancia a la violencia física",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_victimizacion_viol_sexual_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_victimizacion_viol_sexual_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+
+```{r}
+str(data_factores$q0020_0007)
+```
+
+```{r}
+vic_violencia_sexual <- c("q0020_0007","q0020_0008","q0020_0009", "q0020_0010", "q0021_0008", "q0021_0010") 
+
+tab_vic_viol_sexual <-data_factores|>
+  tab_cells(q0020_0007,q0020_0008,q0020_0009,q0020_0010,q0021_0008,q0021_0010)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_viol_sexual
+
+tab_vic_viol_sexual_prom <-data_factores|>
+  tab_cells(f_victimizacion_viol_sexual_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_tol_viol_fisica_prom
+
+data_factores <- data_factores |>
+  mutate(
+    victima_viol_sexual_dummy = case_when(
+      if_any(all_of(vic_violencia_sexual), ~ .x > 1) ~ 1,     # Alguna > 1  -> víctima
+      if_all(all_of(vic_violencia_sexual), ~ .x == 1) ~ 0,    # Todas == 1  -> no víctima
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    victima_viol_sexual_dummy = "Víctima de violencia sexual",
+    victima_viol_sexual_dummy = c(
+      "Víctima de al menos una de las variables" = 1,
+      "No víctima" = 0))
+
+tab_vic_viol_sexual_dummy <- data_factores |>
+  tab_cells(victima_viol_sexual_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_viol_sexual_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_viol_sexual_dummy
+```
+
+```{r}
+data_factores<-data_factores |>
+  mutate(n_vic_viol_sexual = rowSums(across(all_of(vic_violencia_sexual), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_vic_viol_sexual = "N° variables de violencia sexual que fue víctima")
+
+tab_n_vic_viol_sexual<-data_factores |>
+  tab_cells(n_vic_viol_sexual) |>
+  tab_cols(total(), SEXO, tolerancia_viol_sexual_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_vic_viol_sexual
+```
+## Victimización agresión verbal
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_victimizacion_agresiones_verbales_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Tolerancia a violencia física",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_victimizacion_agresiones_verbales_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Tolerancia a la violencia física",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_victimizacion_agresiones_verbales_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_victimizacion_agresiones_verbales_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+vic_agresion_verbal <- c("q0020_0002","q0021_0005","q0021_0006","q0021_0007") 
+
+tab_vic_agresion_verbal <-data_factores|>
+  tab_cells(q0020_0002,q0021_0005,q0021_0006,q0021_0007)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_agresion_verbal
+
+tab_vic_agresion_verbal_prom <-data_factores|>
+  tab_cells(f_victimizacion_agresiones_verbales_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_agresion_verbal_prom
+
+data_factores <- data_factores |>
+  mutate(
+    victima_agresion_verbal_dummy = case_when(
+      if_any(all_of(vic_agresion_verbal), ~ .x > 1) ~ 1,     # Alguna > 1  -> víctima
+      if_all(all_of(vic_agresion_verbal), ~ .x == 1) ~ 0,    # Todas == 1  -> no víctima
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    victima_agresion_verbal_dummy = "Víctima de agresiones verbales",
+    victima_agresion_verbal_dummy = c(
+      "Víctima de al menos una de las variables" = 1,
+      "No víctima" = 0))
+
+tab_vic_agresion_verbal_dummy <- data_factores |>
+  tab_cells(victima_agresion_verbal_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_agresion_verbal_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_agresion_verbal_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_vic_agresion_verbal = rowSums(across(all_of(vic_agresion_verbal), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_vic_agresion_verbal = "N° variables de agresiones verbales que fue víctima")
+
+tab_n_vic_agresion_verbal<-data_factores |>
+  tab_cells(n_vic_agresion_verbal) |>
+  tab_cols(total(), SEXO,tolerancia_agresion_verbal_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_vic_agresion_verbal
+```
+## Victimización control
+###Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_victimizacion_control_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Victimización control",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_victimizacion_control_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Victimización control",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_victimizacion_control_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_victimizacion_control_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+vic_control <- c("q0020_0001", "q0020_0003", "q0020_0004","q0021_0001", "q0021_0002", "q0021_0003") 
+
+tab_vic_control <-data_factores|>
+  tab_cells(q0020_0001, q0020_0003, q0020_0004,q0021_0001, q0021_0002, q0021_0003)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_control
+
+tab_vic_control_prom <-data_factores|>
+  tab_cells(f_victimizacion_control_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_control_prom
+
+data_factores <- data_factores |>
+  mutate(
+    victima_control_dummy = case_when(
+      if_any(all_of(vic_control), ~ .x > 1) ~ 1,     # Alguna > 1  -> víctima
+      if_all(all_of(vic_control), ~ .x == 1) ~ 0,    # Todas == 1  -> no víctima
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    victima_control_dummy = "Víctima de control",
+    victima_control_dummy = c(
+      "Víctima de al menos una de las variables" = 1,
+      "No víctima" = 0))
+
+tab_vic_control_dummy <- data_factores |>
+  tab_cells(victima_control_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_control_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_control_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_vic_control = rowSums(across(all_of(vic_control), ~ !is.na(.x) & .x > 1)))
+
+tab_n_vic_control<-data_factores |>
+  apply_labels(n_vic_control = "N° variables de control que fue víctima")|>
+  tab_cells(n_vic_control) |>
+  tab_cols(total(), SEXO,tolerancia_control_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_vic_control
+```
+##Victimización violencia física
+###Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_victimizacion_viol_fisica_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Victimizaciónviolencia física",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_victimizacion_viol_fisica_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Victimización violencia física",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_victimizacion_viol_fisica_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_victimizacion_viol_fisica_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+###Tablas
+```{r}
+vic_viol_fisica <- c("q0020_0005","q0020_0006","q0021_0004") 
+
+tab_vic_viol_fisica<-data_factores|>
+  tab_cells(q0020_0005,q0020_0006,q0021_0004)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_viol_fisica
+
+tab_vic_viol_fisica_prom <-data_factores|>
+  tab_cells(f_victimizacion_viol_fisica_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_viol_fisica_prom
+
+data_factores <- data_factores |>
+  mutate(
+    victima_viol_fisica_dummy = case_when(
+      if_any(all_of(vic_viol_fisica), ~ .x > 1) ~ 1,     # Alguna > 1  -> víctima
+      if_all(all_of(vic_viol_fisica), ~ .x == 1) ~ 0,    # Todas == 1  -> no víctima
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    victima_viol_fisica_dummy = "Víctima de violencia física",
+    victima_viol_fisica_dummy = c(
+      "Víctima de al menos una de las variables" = 1,
+      "No víctima" = 0))
+
+tab_vic_viol_fisica_dummy <- data_factores |>
+  tab_cells(victima_viol_fisica_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_viol_fisica_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_vic_viol_fisica_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_vic_viol_fisica = rowSums(across(all_of(vic_viol_fisica), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_vic_viol_fisica = "N° variables de violencia física que fue víctima")
+
+tab_n_vic_viol_fisica<-data_factores |>
+  tab_cells(n_vic_viol_fisica) |>
+  tab_cols(total(), SEXO,tolerancia_viol_fisica_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_vic_viol_fisica
+```
+##Perpetración violencia sexual
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_perpetracion_viol_sexual_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Perpetración violencia sexual",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_perpetracion_viol_sexual_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Perpetración violencia sexual",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_perpetracion_viol_sexual_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_perpetracion_viol_sexual_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+perp_violencia_sexual <- c("q0022_0007","q0022_0008","q0022_0009", "q0022_0010","q0023_0008","q0023_0010") 
+
+tab_perp_viol_sexual <-data_factores|>
+  tab_cells(q0022_0007,q0022_0008,q0022_0009, q0022_0010,q0023_0008,q0023_0010)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_viol_sexual
+
+tab_perp_viol_sexual_prom <-data_factores|>
+  tab_cells(f_perpetracion_viol_sexual_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_viol_sexual_prom
+
+data_factores <- data_factores |>
+  mutate(
+    perpetrador_viol_sexual_dummy = case_when(
+      if_any(all_of(perp_violencia_sexual), ~ .x > 1) ~ 1,     # Alguna > 1  -> víctima
+      if_all(all_of(perp_violencia_sexual), ~ .x == 1) ~ 0,    # Todas == 1  -> no víctima
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    perpetrador_viol_sexual_dummy = "Perpetrador de violencia sexual",
+    perpetrador_viol_sexual_dummy = c(
+      "Realizó al menos una de las variables" = 1,
+      "No perpetrador" = 0))
+
+tab_perp_viol_sexual_dummy <- data_factores |>
+  tab_cells(perpetrador_viol_sexual_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_viol_sexual_dummy, victima_viol_sexual_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_viol_sexual_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_perpetracion_violencia_sexual = rowSums(across(all_of(perp_violencia_sexual), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_perpetracion_violencia_sexual = "N° acciones de violencia sexual que ejerció")
+
+tab_n_perpetracion_viol_sexual<-data_factores |>
+  tab_cells(n_perpetracion_violencia_sexual) |>
+  tab_cols(total(), SEXO, victima_viol_sexual_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_perpetracion_viol_sexual
+```
+## Perpetración agresión verbal
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_perpetracion_agresiones_verbales_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Perpetración violencia sexual",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_perpetracion_agresiones_verbales_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Perpetración violencia sexual",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_perpetracion_agresiones_verbales_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_perpetracion_agresiones_verbales_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+perp_agresion_verbal <- c("q0022_0002","q0023_0005","q0023_0006","q0023_0007") 
+
+tab_perp_agresion_verbal <-data_factores|>
+  tab_cells(q0022_0002,q0023_0005,q0023_0006,q0023_0007)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_agresion_verbal
+
+tab_perp_agresion_verbal_prom <-data_factores|>
+  tab_cells(f_perpetracion_agresiones_verbales_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_agresion_verbal_prom
+
+data_factores <- data_factores |>
+  mutate(
+    perpetrador_agresion_verbal_dummy = case_when(
+      if_any(all_of(perp_agresion_verbal), ~ .x > 1) ~ 1,     # Alguna > 1  -> víctima
+      if_all(all_of(perp_agresion_verbal), ~ .x == 1) ~ 0,    # Todas == 1  -> no víctima
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    perpetrador_agresion_verbal_dummy = "Perpetrador agresiones verbales",
+    perpetrador_agresion_verbal_dummy = c(
+      "Realizó al menos una de las variables" = 1,
+      "No perpetrador" = 0))
+
+tab_perp_agresion_verbal_dummy <- data_factores |>
+  tab_cells(perpetrador_agresion_verbal_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_agresion_verbal_dummy, victima_agresion_verbal_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_agresion_verbal_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_perpetracion_agresion_verbal = rowSums(across(all_of(perp_agresion_verbal), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_perpetracion_agresion_verbal = "N° agresiones verbales que ejerció")
+
+tab_n_perpetracion_agresion_verbal<-data_factores |>
+  tab_cells(n_perpetracion_agresion_verbal) |>
+  tab_cols(total(), SEXO, victima_agresion_verbal_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_perpetracion_agresion_verbal
+```
+## Perpetración control
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_perpetracion_control_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Perpetración violencia sexual",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_perpetracion_control_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Perpetración violencia sexual",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_perpetracion_control_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_perpetracion_control_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+perp_control <- c("q0022_0001","q0022_0003","q0022_0004","q0023_0001","q0023_0002","q0023_0003") 
+
+tab_perp_control <-data_factores|>
+  tab_cells(q0022_0001,q0022_0003,q0022_0004,q0023_0001,q0023_0002,q0023_0003)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_control
+
+tab_perp_control_prom <-data_factores|>
+  tab_cells(f_perpetracion_control_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_control_prom
+
+data_factores <- data_factores |>
+  mutate(
+    perpetrador_control_dummy = case_when(
+      if_any(all_of(perp_control), ~ .x > 1) ~ 1,     # Alguna > 1  -> perpetrador
+      if_all(all_of(perp_control), ~ .x == 1) ~ 0,    # Todas == 1  -> no perpetrador
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    perpetrador_control_dummy = "Perpetrador de control",
+    perpetrador_control_dummy = c(
+      "Realizó al menos una de las variables" = 1,
+      "No perpetrador" = 0))
+
+tab_perp_control_dummy <- data_factores |>
+  tab_cells(perpetrador_control_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_control_dummy, victima_control_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_control_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_perpetracion_control = rowSums(across(all_of(perp_control), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_perpetracion_control = "N° acciones de control que ejerció")
+
+tab_n_perpetracion_control<-data_factores |>
+  tab_cells(n_perpetracion_control) |>
+  tab_cols(total(), SEXO, victima_control_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_perpetracion_control
+```
+## Perpetración violencia física
+### Gráficos
+```{r}
+ggplot(data_factores, aes(x = f_perpetracion_viol_fisica_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  labs(title = "Distribución de la escala: Perpetración violencia físical",
+    x = "Promedio",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(y = f_perpetracion_viol_fisica_prom)) +
+  geom_boxplot(fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot de la escala: Perpetración violencia físical",
+    y = "Promedio") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = f_perpetracion_viol_fisica_prom)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "white") +
+  facet_wrap(~ SEXO) +
+  labs(#title = "",
+    x = "Puntaje total",
+    y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+
+ggplot(data_factores, aes(x = SEXO, y = f_perpetracion_viol_fisica_prom, fill = SEXO)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(# title = "",
+    x = "Sexo",
+    y = "Promedio") +
+  theme_minimal(base_size = 14) +
+  scale_fill_brewer(palette = "Set2")
+```
+### Tablas
+```{r}
+perp_violencia_fisica <- c("q0022_0005","q0022_0006","q0023_0004") 
+
+tab_perp_viol_fisica <-data_factores|>
+  tab_cells(q0022_0005,q0022_0006,q0023_0004)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_viol_fisica
+
+tab_perp_viol_fisica_prom <-data_factores|>
+  tab_cells(f_perpetracion_viol_fisica_prom)|>
+  tab_cols(total(), SEXO)|>
+ # tab_stat_cases(label="N")|>
+  tab_stat_cpct()|> 
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_viol_fisica_prom
+
+data_factores <- data_factores |>
+  mutate(
+    perpetrador_viol_fisica_dummy = case_when(
+      if_any(all_of(perp_violencia_fisica), ~ .x > 1) ~ 1,     # Alguna > 1  -> perpetrador
+      if_all(all_of(perp_violencia_fisica), ~ .x == 1) ~ 0,    # Todas == 1  -> no perpetrador
+      TRUE ~ NA_real_)) |>
+  apply_labels(
+    perpetrador_viol_fisica_dummy = "Perpetrador de violencia física",
+    perpetrador_viol_fisica_dummy = c(
+      "Realizó al menos una de las variables" = 1,
+      "No perpetrador" = 0))
+
+tab_perp_viol_fisica_dummy <- data_factores |>
+  tab_cells(perpetrador_viol_fisica_dummy) |>
+  tab_cols(total(), SEXO, tolerancia_viol_fisica_dummy, victima_viol_fisica_dummy) |>
+  tab_stat_cpct() |>
+  tab_pivot(stat_position = "inside_columns")
+tab_perp_viol_fisica_dummy
+```
+```{r}
+data_factores<-data_factores |>
+  mutate(n_perpetracion_violencia_fisica = rowSums(across(all_of(perp_violencia_fisica), ~ !is.na(.x) & .x > 1)))|>
+  apply_labels(n_perpetracion_violencia_fisica = "N° acciones de violencia física que ejerció")
+
+tab_n_perpetracion_viol_fisica<-data_factores |>
+  tab_cells(n_perpetracion_violencia_fisica) |>
+  tab_cols(total(), SEXO, victima_viol_fisica_dummy) |>
+  tab_stat_cpct() |>
+ # tab_stat_cases(label = "N") |>
+  tab_pivot(stat_position = "inside_columns")
+tab_n_perpetracion_viol_fisica
+```
+
+```{r}
+#write.csv(data_factores, "SUBDATA_PUCP.csv", row.names = FALSE)
+```
+
+# Correlaciones
+```{r}
+colnames(data_factores)
+```
+
+## Puntaje total factores
+```{r}
+factores_total<-c("f_estereotipos_genero","f_mitos_amor_maltrato", "f_mitos_idealizacion","f_mitos_celos","f_mitos_despersonalizacion","f_tolerancia_viol_sexual","f_tolerancia_agresiones_verbales",        "f_tolerancia_control","f_tolerancia_viol_fisica","f_victimizacion_viol_sexual","f_victimizacion_agresiones_verbales",      "f_victimizacion_control","f_victimizacion_viol_fisica","f_perpetracion_viol_sexual","f_perpetracion_agresiones_verbales",       "f_perpetracion_control","f_perpetracion_viol_fisica")
+
+lapply(data_factores[,factores_total],str)
+```
+
+```{r}
+cor_matrix <- cor(data_factores[, factores_total], method = "pearson")
+corrplot(cor_matrix, method = "color", type = "upper", 
+         addCoef.col = "black", tl.col = "black", tl.srt = 45, tl.cex = 0.55, number.cex = 0.55)
+```
+
+## Factores dummy 
+```{r}
+factores_dummy<-c("Acuerdo_estereotipos_dummy","Acuerdo_mitos_amor_maltrato_dummy","Acuerdo_mitos_idealizacion_dummy","Acuerdo_mitos_celos_dummy","Acuerdo_mitos_despersonalizacion_dummy","tolerancia_viol_sexual_dummy","tolerancia_agresion_verbal_dummy",         "tolerancia_control_dummy","tolerancia_viol_fisica_dummy","victima_viol_sexual_dummy","victima_agresion_verbal_dummy",            "victima_control_dummy","victima_viol_fisica_dummy", "perpetrador_viol_sexual_dummy","perpetrador_agresion_verbal_dummy", "perpetrador_control_dummy","perpetrador_viol_fisica_dummy")
+
+lapply(data_factores[,factores_dummy],str)
+```
+
+```{r}
+cor_matrix_dummy <- cor(data_factores[, factores_dummy], method = "pearson")
+corrplot(cor_matrix_dummy, method = "color", type = "upper", 
+         addCoef.col = "black", tl.col = "black", tl.srt = 45, tl.cex = 0.55, number.cex = 0.55)
+```
+
+## N factores
+
+Número de variables de cada factor con la que están de acuerdo
+```{r}
+factores_n <- data_factores %>%
+  select(starts_with("n_")) %>%
+  names()
+factores_n
+
+lapply(data_factores[,factores_n],str)
+```
+
+```{r}
+cor_matrix_n <- cor(data_factores[, factores_n], method = "pearson")
+corrplot(cor_matrix_n, method = "color", type = "upper", 
+         addCoef.col = "black", tl.col = "black", tl.srt = 45, tl.cex = 0.55, number.cex = 0.55)
+```
+
+# Exportar
+```{r}
+wb= createWorkbook()
+```
+```{r}
+tab_estereotipos<-list(tab_estereotipos,tab_estereotipos_dummy,tab_n_estereotipos, tab_estereotipos_prom)
+sh = addWorksheet(wb, "Estereotipos genero")
+xl_write(tab_estereotipos, wb, sh)
+
+tab_amor_maltrato<-list(tab_amor_maltrato,tab_amor_maltrato_dummy, tab_n_amor_maltrato, tab_amor_maltrato_prom)
+sh = addWorksheet(wb, "Mitos Amor maltrato")
+xl_write(tab_amor_maltrato, wb, sh)
+
+tab_idealizacion<-list(tab_mitos_idealizacion,tab_idealizacion_dummy, tab_n_idealizacion, tab_mitos_idealizacion_prom)
+sh = addWorksheet(wb, "Mitos idealizacion")
+xl_write(tab_idealizacion, wb, sh)
+
+tab_celos<-list(tab_mitos_celos, tab_mitos_celos_dummy, tab_n_celos, tab_mitos_celos_prom)
+sh = addWorksheet(wb, "Mitos celos")
+xl_write(tab_celos, wb, sh)
+
+tab_despersonalizacion<-list(tab_mitos_despersonalizacion,tab_mitos_despersonalizacion_dummy, tab_n_despersonalizacion, tab_mitos_despersonalizacion_prom)
+sh = addWorksheet(wb, "Mitos despersonalizacion")
+xl_write(tab_despersonalizacion, wb, sh)
+
+tab_tolerancia_viol_sexual<-list(tab_tol_violsexual,tab_tol_violsexual_dummy,tab_n_tolerancia_viol_sexual, tab_tol_violsexual_prom)
+sh = addWorksheet(wb, "Tol viol sexual")
+xl_write(tab_tolerancia_viol_sexual, wb, sh)
+
+tab_tolerancia_agresiones_verbales<-list(tab_tol_agresiones_verbales,tab_tol_agresiones_verbales_dummy, tab_n_tol_agresiones_verbales, tab_tol_agresiones_verbales_prom)
+sh = addWorksheet(wb, "Tol agresiones verbales")
+xl_write(tab_tolerancia_agresiones_verbales, wb, sh)
+
+tab_tolerancia_control<-list(tab_tol_control,tab_tol_control_dummy, tab_n_tol_control, tab_tol_control_prom)
+sh = addWorksheet(wb, "Tol control")
+xl_write(tab_tolerancia_control, wb, sh)
+
+tab_tolerancia_viol_fisica<-list(tab_tol_viol_fisica,tab_tol_viol_fisica_dummy,tab_n_tol_viol_fisica, tab_tol_viol_fisica_prom)
+sh = addWorksheet(wb, "Tol viol fisica")
+xl_write(tab_tolerancia_viol_fisica, wb, sh)
+
+tab_victimizacion_viol_sexual<-list( tab_vic_viol_sexual,tab_vic_viol_sexual_dummy,tab_n_vic_viol_sexual, tab_vic_viol_sexual_prom)
+sh = addWorksheet(wb, "Vic viol sexual")
+xl_write(tab_victimizacion_viol_sexual, wb, sh)
+
+tab_victimizacion_agresiones_verbales<-list(tab_vic_agresion_verbal,tab_vic_agresion_verbal_dummy, tab_n_vic_agresion_verbal, tab_vic_agresion_verbal_prom)
+sh = addWorksheet(wb, "Vic agresiones verbales")
+xl_write(tab_victimizacion_agresiones_verbales, wb, sh)
+
+tab_victimizacion_control<-list(tab_vic_control,tab_vic_control_dummy, tab_n_vic_control, tab_vic_control_prom)
+sh = addWorksheet(wb, "Vic control")
+xl_write(tab_victimizacion_control, wb, sh)
+
+tab_victimizacion_viol_fisica<-list(tab_vic_viol_fisica,tab_vic_viol_fisica_dummy,tab_n_vic_viol_fisica, tab_vic_viol_fisica_prom)
+sh = addWorksheet(wb, "Vic viol fisica")
+xl_write(tab_victimizacion_viol_fisica, wb, sh)
+
+tab_perpetracion_viol_sexual<-list( tab_perp_viol_sexual,tab_perp_viol_sexual_dummy,tab_n_perpetracion_viol_sexual, tab_perp_viol_sexual_prom)
+sh = addWorksheet(wb, "Perp viol sexual")
+xl_write(tab_perpetracion_viol_sexual, wb, sh)
+
+tab_perpetracion_agresiones_verbales<-list(tab_perp_agresion_verbal,tab_perp_agresion_verbal_dummy, tab_n_perpetracion_agresion_verbal, tab_perp_agresion_verbal_prom )
+sh = addWorksheet(wb, "Perp agresiones verbales")
+xl_write(tab_perpetracion_agresiones_verbales, wb, sh)
+
+tab_perpetracion_control<-list(tab_perp_control,tab_perp_control_dummy, tab_n_perpetracion_control, tab_perp_control_prom)
+sh = addWorksheet(wb, "Perp control")
+xl_write(tab_perpetracion_control, wb, sh)
+
+tab_perpetracion_viol_fisica<-list(tab_perp_viol_fisica,tab_perp_viol_fisica_dummy,tab_n_perpetracion_viol_fisica, tab_perp_viol_fisica_prom)
+sh = addWorksheet(wb, "Perp viol fisica")
+xl_write(tab_perpetracion_viol_fisica, wb, sh)
+```
+
+```{r}
+saveWorkbook(wb, "Descriptivos_factores_Subdata.xlsx", overwrite = TRUE)
+```
+

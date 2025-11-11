@@ -1,0 +1,574 @@
+---
+title: "Análisis cluster"
+author: "Guillermo Soto"
+date: "2025-10-01"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# paquetes
+
+```{r}
+library(openxlsx)
+library(mice)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(haven)
+library(sjlabelled)
+library(expss)
+```
+
+# preparación de la data
+
+```{r}
+data<-read_sav("Amor_romantico_data_PUCP_3.sav")
+```
+
+```{r}
+subdata<-data|>
+  filter(q0001 == 1)|> #¿Estás de acuerdo en responder la encuesta?
+  filter(q0002 !=3)|> #¿Actualmente, eres estudiante universitario/a de la PUCP, de la UNMSM u otra?
+  filter(q0003 == 1)|> #¿Tienes entre 18 y 25 años?
+  filter(q0004 == 1) #¿Eres de nacionalidad peruana y/o resides en el Perú?
+```
+
+```{r}
+get_label(subdata$q0018)
+```
+
+
+
+```{r}
+#Observando esta tabla nos damos cuenta que algunos en q0019 (¿Has tenido una relación afectiva y/o sexual alguna vez en la vida?) marcaron que sí a pesar que en q0018 marcaron no (si tuvieron una relación alguna vez). En total deberían haber 198 personas que marcaron que sí tuvieron una relación al menos una vez en la vida.
+
+subdata|>
+  group_by(q0018, q0019)|>
+  summarise(cantidad = n())
+```
+
+## recodificaciones y etiquetados
+
+```{r}
+subdata_anlz<-subdata|>
+  mutate(
+    relacion = if_else(q0018 == 1 | q0019 ==1, 1, 0),
+    relacion = replace_na(relacion, 0),
+    relacion = factor(relacion,
+                      levels = c(1, 0),
+                      labels = c("sí tuvo", "no tuvo")),
+    estereotipos_genero = rowMeans(across(c("q0015_0001", "q0015_0002", "q0015_0003",
+                                            "q0015_0004", "q0015_0005"))),
+    mitos_maltrato = rowMeans(across(c("q0014_0006", "q0014_0008", "q0014_0005",
+                                           "q0014_0007"))),
+    mitos_idealiz = rowMeans(across(c("q0013_0002", "q0014_0001", "q0013_0001",
+                                      "q0013_0006", "q0013_0004", "q0013_0005"))),
+    mitos_celos = rowMeans(across(c("q0014_0002", "q0014_0003", "q0014_0004",
+                                        "q0014_0010", "q0013_0008"))),
+    mitos_sacrificio = rowMeans(across(c("q0013_0007", "q0014_0009", "q0013_0010",
+                                         "q0013_0009"))),
+    tolera_agr_verbal = rowMeans(across(c("q0017_0006", "q0017_0007", "q0016_0002",
+                                              "q0017_0005"))),
+    tolera_agr_sexual = rowMeans(across(c("q0016_0007", "q0016_0008", "q0016_0009",
+                                           "q0016_0010", "q0017_0008", "q0017_0010"))),
+    tolera_control = rowMeans(across(c("q0016_0001", "q0016_0003", "q0016_0004",
+                                           "q0017_0001", "q0017_0002", "q0017_0003"))),
+    tolera_agr_fisica = rowMeans(across(c("q0017_0004", "q0016_0005", "q0016_0006"))),
+    SEXO_recod = factor(if_else(SEXO == "F", 1, 0),
+                        levels = c(0, 1),
+                        labels = c("Masculino", "Femenino")))
+```
+
+
+```{r}
+subdata_anlz|>
+  group_by(relacion)|>
+  summarise(cantidad = n())
+```
+
+## limpieza
+
+```{r}
+# se excluyeron q0013_0003 y q0017_0009
+
+subdata_anlz_filtrado<-subdata_anlz|>
+  filter(if_all(c("q0013_0001", "q0013_0002", "q0013_0004":"q0013_0010", "q0014_0001":"q0014_0010", "q0016_0001":"q0016_0010", "q0017_0001":"q0017_0008", "q0017_0010" ), ~ . != 0 #Prefiero no responder
+                )
+         )
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(q0018, q0019)|>
+  summarise(cantidad = n())
+```
+
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(relacion)|>
+  summarise(cantidad = n())
+```
+
+
+# Análisis Cluster
+
+## Mitos
+
+```{r}
+mitos_factores<-subdata_anlz_filtrado|>
+  select(mitos_maltrato, mitos_idealiz, mitos_celos, mitos_sacrificio)
+
+mitos_fac_scaled<-scale(mitos_factores)
+```
+
+```{r}
+fviz_nbclust(mitos_fac_scaled, kmeans,  method =  "wss")
+fviz_nbclust(mitos_fac_scaled, kmeans,  method =  "silhouette")
+fviz_nbclust(mitos_fac_scaled, kmeans,  method =  "gap_stat")
+```
+
+
+
+```{r}
+set.seed(123) # para reproducibilidad
+kmeans_result <- kmeans(mitos_fac_scaled, centers = 2, nstart = 25)
+```
+
+```{r}
+subdata_anlz_filtrado$cluster_mitos <- factor(kmeans_result$cluster,
+                                              levels = c(1,2),
+                                              labels = c("altos", "bajos"))
+```
+
+```{r}
+kmeans_result$cluster <- subdata_anlz_filtrado$cluster_mitos
+```
+
+### Gráfico
+
+```{r}
+fviz_cluster(kmeans_result, 
+             data = mitos_fac_scaled,
+             geom = "point",
+             ellipse.type = "convex", # Concentration ellipse
+             repel = F, # Avoid label overplotting (slow)
+             show.clust.cent = FALSE, ggtheme = theme_minimal())+
+  labs(title = "Agrupamiento de casos según factores de mitos")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.minor = element_blank(),  # quita grillas menores
+        panel.grid.major = element_line(color = "grey85"), # opcional
+        axis.line = element_line(color = "black"),  # líneas de ejes visibles
+        axis.ticks = element_line(color = "black")) # agrega las marcas en los ejes
+```
+
+
+```{r}
+table<-get_labels(subdata_anlz_filtrado$q0013_0001, values = "p")
+
+print(table)
+```
+
+### Promedios
+
+```{r}
+aggregate(subdata_anlz_filtrado[, c("mitos_maltrato", "mitos_idealiz", "mitos_celos", "mitos_sacrificio")], 
+          by = list(subdata_anlz_filtrado$cluster_mitos), 
+          FUN = mean)
+```
+
+
+```{r}
+tab_1<-subdata_anlz_filtrado |>
+  apply_labels(cluster_mitos = "Cluster de mitos",
+               mitos_maltrato = "Mitos de maltrato",
+               mitos_idealiz = "Mitos de idelización",
+               mitos_sacrificio = "Mitos de sacrificio",
+               mitos_celos = "Mitos de celos")|>
+  tab_cells(mitos_maltrato, mitos_idealiz, mitos_celos, mitos_sacrificio)|>
+  tab_cols(cluster_mitos)|>
+  tab_stat_mean(label = "")|>
+  tab_pivot()|>
+  tab_transpose()
+
+tab_1
+```
+
+
+
+## Tolerancia
+
+```{r}
+tolera_factores<-subdata_anlz_filtrado|>
+  select(tolera_agr_verbal, tolera_agr_sexual, tolera_control, tolera_agr_fisica)
+
+tolera_fac_scaled<-scale(tolera_factores)
+```
+
+```{r}
+fviz_nbclust(tolera_fac_scaled, kmeans,  method =  "wss")
+fviz_nbclust(tolera_fac_scaled, kmeans,  method =  "silhouette")
+fviz_nbclust(tolera_fac_scaled, kmeans,  method =  "gap_stat")
+```
+
+### Dos cluster
+
+
+```{r}
+set.seed(123) # para reproducibilidad
+kmeans_result <- kmeans(tolera_fac_scaled, centers = 2, nstart = 25)
+```
+
+```{r}
+subdata_anlz_filtrado$cluster_tolera_2 <- factor(kmeans_result$cluster,
+                                                 levels = c(1,2),
+                                                 labels = c("medio-alto", "bajos"))
+```
+
+
+```{r}
+kmeans_result$cluster<-subdata_anlz_filtrado$cluster_tolera_2
+```
+
+
+### Gráfico
+
+```{r}
+fviz_cluster(kmeans_result, 
+             data = tolera_fac_scaled,
+             geom = "point",
+             ellipse.type = "convex", # Concentration ellipse
+             repel = F, # Avoid label overplotting (slow)
+             show.clust.cent = FALSE, ggtheme = theme_minimal())+
+  labs(title = "Agrupamiento de casos según factores de tolerancia")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.minor = element_blank(),  # quita grillas menores
+        panel.grid.major = element_line(color = "grey85"), # opcional
+        axis.line = element_line(color = "black"),  # líneas de ejes visibles
+        axis.ticks = element_line(color = "black")) # agrega las marcas en los ejes
+```
+
+```{r}
+table<-get_labels(subdata_anlz_filtrado$q0016_0001, values = "p")
+
+print(table)
+```
+
+### Promedios
+
+```{r}
+aggregate(subdata_anlz_filtrado[, c("tolera_agr_verbal", "tolera_agr_fisica", "tolera_agr_sexual", "tolera_control")], 
+          by = list(subdata_anlz_filtrado$cluster_tolera_2), 
+          FUN = mean)
+```
+
+```{r}
+tab_2<-subdata_anlz_filtrado |>
+  apply_labels(cluster_tolera_2 = "Cluster de tolerancia dos grupos",
+               tolera_agr_verbal = "tolerancia a agresión verbal",
+               tolera_agr_fisica = "tolerancia a agresión física",
+               tolera_agr_sexual = "tolerancia a agresión sexual",
+               tolera_control = "tolerancia a control")|>
+  tab_cells(tolera_agr_verbal, tolera_agr_fisica, tolera_agr_sexual, tolera_control)|>
+  tab_cols(cluster_tolera_2)|>
+  tab_stat_mean(label = "")|>
+  tab_pivot()|>
+  tab_transpose()
+
+tab_2
+```
+
+
+
+### cuatro cluster
+
+```{r}
+set.seed(123) # para reproducibilidad
+kmeans_result <- kmeans(tolera_fac_scaled, centers = 4, nstart = 25)
+```
+
+```{r}
+subdata_anlz_filtrado$cluster_tolera_4 <- factor(kmeans_result$cluster,
+                                                 levels = c(1, 2, 3, 4),
+                                                 labels = c("medio-alto", "bajo", "alto", "bajo-medio"))
+```
+
+```{r}
+kmeans_result$cluster<-subdata_anlz_filtrado$cluster_tolera_4
+```
+
+
+### Gráficos
+
+```{r}
+fviz_cluster(kmeans_result, 
+             data = tolera_fac_scaled,
+             geom = "point",
+             ellipse.type = "convex", # Concentration ellipse
+             repel = F, # Avoid label overplotting (slow)
+             show.clust.cent = FALSE, ggtheme = theme_minimal())+
+  labs(title = "Agrupamiento de casos según factores de tolerancia")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.minor = element_blank(),  # quita grillas menores
+        panel.grid.major = element_line(color = "grey85"), # opcional
+        axis.line = element_line(color = "black"),  # líneas de ejes visibles
+        axis.ticks = element_line(color = "black")) # agrega las marcas en los ejes
+```
+
+```{r}
+table<-get_labels(subdata_anlz_filtrado$q0016_0001, values = "p")
+
+print(table)
+```
+
+### Promedios
+
+```{r}
+aggregate(subdata_anlz_filtrado[, c("tolera_agr_verbal", "tolera_agr_fisica", "tolera_agr_sexual", "tolera_control")], 
+          by = list(subdata_anlz_filtrado$cluster_tolera_4), 
+          FUN = mean)
+```
+
+```{r}
+tab_3<-subdata_anlz_filtrado |>
+  apply_labels(cluster_tolera_4 = "Cluster de tolerancia 4 grupos",
+               tolera_agr_verbal = "tolerancia a agresión verbal",
+               tolera_agr_fisica = "tolerancia a agresión física",
+               tolera_agr_sexual = "tolerancia a agresión sexual",
+               tolera_control = "tolerancia a control")|>
+  tab_cells(tolera_agr_verbal, tolera_agr_fisica, tolera_agr_sexual, tolera_control)|>
+  tab_cols(cluster_tolera_4)|>
+  tab_stat_mean(label = "")|>
+  tab_pivot()|>
+  tab_transpose()
+
+tab_3
+```
+
+
+# Cruces
+
+## Mitos
+
+### Sexo
+
+```{r}
+tab_4<-subdata_anlz_filtrado|>
+  apply_labels(
+    SEXO_recod = "Sexo",
+    #SEXO_recod = c("Femenino" = 1,
+    #               "Masculino" = 0),
+    cluster_mitos = "cluster de mitos"#,
+    #cluster_mitos = c("Altos" = 1,
+     #                            "Bajos" = 2)
+    )|>
+  tab_cells(cluster_mitos)|>
+  tab_cols(SEXO_recod)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(cluster_mitos, SEXO_recod)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_mitos), y = porcent, fill = SEXO_recod)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "Sexo")
+```
+
+
+### Relacion
+
+```{r}
+tab_5 <-subdata_anlz_filtrado|>
+  apply_labels(relacion = "Relación afectiva",
+               #relacion = c("Sí tuvo una" = 1,
+                            #"No tuvo una" = 0),
+               cluster_mitos = "cluster de mitos"#,
+               #cluster_mitos = c("Altos" = 1,
+                #                 "Bajos" = 2)
+               )|>
+  tab_cells(cluster_mitos)|>
+  tab_cols(relacion)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(cluster_mitos, relacion)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_mitos), y = porcent, fill = relacion)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "relacion")
+```
+
+## tolerancia 2 cluster
+
+### Sexo
+
+```{r}
+tab_6<-subdata_anlz_filtrado|>
+  apply_labels(SEXO_recod = "Sexo",
+               #SEXO_recod = c("Femenino" = 1,
+                 #             "Masculino" = 0),
+               cluster_tolera_2 = "cluster de tolernacia dos grupos"#,
+               #cluster_tolera_2 = c("medio-alto" = 1,
+                #                 "Bajos" = 2)
+               )|>
+  tab_cells(cluster_tolera_2)|>
+  tab_cols(SEXO_recod)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(cluster_tolera_2, SEXO_recod)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_tolera_2), y = porcent, fill = SEXO_recod)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "Sexo")
+```
+
+
+
+### Relacion
+
+```{r}
+tab_7<-subdata_anlz_filtrado|>
+  apply_labels(relacion = "Relación afectiva",
+               #relacion = c("Sí tuvo una" = 1,
+                #            "No tuvo una" = 0),
+               cluster_tolera_2 = "cluster de tolerancia 2 grupos"#,
+               #cluster_tolera_2 = c("Medio-alto" = 1,
+                #                 "Bajos" = 2)
+               )|>
+  tab_cells(cluster_tolera_2)|>
+  tab_cols(relacion)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(cluster_tolera_2, relacion)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_tolera_2), y = porcent, fill = relacion)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "relacion")
+```
+
+
+## tolerancia 4 cluster
+
+### Sexo
+
+```{r}
+tab_8<-subdata_anlz_filtrado|>
+  apply_labels(SEXO_recod = "Sexo",
+               #SEXO_recod = c("Femenino" = 1,
+                   #           "Masculino" = 0),
+               cluster_tolera_4 = "cluster de tolerancia 4 grupos"#,
+               #cluster_tolera_4 = c("medio-alto" = 1,
+                #                    "bajo" = 2,
+                 #                   "alto" = 3,
+                  #                  "bajo-medio" = 4)
+               )|>
+  tab_cells(cluster_tolera_4)|>
+  tab_cols(SEXO_recod)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(cluster_tolera_4, SEXO_recod)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_tolera_4), y = porcent, fill = SEXO_recod)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "Sexo")
+```
+
+### Relacion
+
+```{r}
+tab_9<-subdata_anlz_filtrado|>
+  apply_labels(relacion = "Relación afectiva",
+               #relacion = c("Sí tuvo una" = 1,
+                #            "No tuvo una" = 0),
+               cluster_tolera_4 = "cluster de tolerancia 4 grupos"#,
+               #cluster_tolera_4 = c("medio-alto" = 1,
+                #                    "bajo" = 2,
+                 #                   "alto" = 3,
+                  #                  "bajo-medio" = 4)
+               )|>
+  tab_cells(cluster_tolera_4)|>
+  tab_cols(relacion)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(cluster_tolera_4, relacion)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_tolera_4), y = porcent, fill = relacion)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "relacion")
+```
+
+# Importar tablas a Excel
+
+
+```{r}
+wb = createWorkbook()
+```
+
+```{r}
+lista <- list(tab_1, tab_2, tab_3)
+sh = addWorksheet(wb, "cluster")
+xl_write(lista,wb,sh,
+         col_symbols_to_remove = "#")
+```
+
+```{r}
+lista <- list(tab_4, tab_5)
+sh = addWorksheet(wb, "mitos")
+xl_write(lista,wb,sh,
+         col_symbols_to_remove = "#")
+```
+
+```{r}
+lista <- list(tab_6, tab_7)
+sh = addWorksheet(wb, "tolerancia_2")
+xl_write(lista,wb,sh,
+         col_symbols_to_remove = "#")
+```
+
+```{r}
+lista <- list(tab_8, tab_9)
+sh = addWorksheet(wb, "tolerancia_4")
+xl_write(lista,wb,sh,
+         col_symbols_to_remove = "#")
+```
+
+```{r}
+saveWorkbook(wb, "tablas_cluster_total.xlsx", overwrite = TRUE)
+```

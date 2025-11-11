@@ -1,0 +1,328 @@
+---
+title: "Análisis cluster subdata"
+author: "Guillermo Soto"
+date: "2025-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# paquetes
+
+```{r}
+library(fmsb)
+library(openxlsx)
+library(mice)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(haven)
+library(sjlabelled)
+library(expss)
+```
+
+# preparación de la data
+
+```{r}
+data<-read_csv("SUBDATA_PUCP.csv")
+```
+
+```{r}
+subdata<-data|>
+  filter(q0001 == 1)|> #¿Estás de acuerdo en responder la encuesta?
+  filter(q0002 !=3)|> #¿Actualmente, eres estudiante universitario/a de la PUCP, de la UNMSM u otra?
+  filter(q0003 == 1)|> #¿Tienes entre 18 y 25 años?
+  filter(q0004 == 1) #¿Eres de nacionalidad peruana y/o resides en el Perú?
+```
+
+## recodificaciones y etiquetados
+
+```{r}
+subdata_anlz<-subdata|>
+  mutate(
+    vict_agr_verbal = rowMeans(across(c("q0021_0006", "q0021_0007", "q0020_0002",
+                                              "q0021_0005"))),
+    vict_agr_sexual = rowMeans(across(c("q0020_0007", "q0020_0008", "q0020_0009",
+                                           "q0020_0010", "q0021_0008", "q0021_0010"))),
+    vict_control = rowMeans(across(c("q0020_0001", "q0020_0003", "q0020_0004",
+                                           "q0021_0001", "q0021_0002", "q0021_0003"))),
+    vict_agr_fisica = rowMeans(across(c("q0021_0004", "q0020_0005", "q0020_0006"))),
+    perp_agr_verbal = rowMeans(across(c("q0023_0006", "q0023_0007", "q0022_0002",
+                                              "q0023_0005"))),
+    perp_agr_sexual = rowMeans(across(c("q0022_0007", "q0022_0008", "q0022_0009",
+                                           "q0023_0010", "q0023_0008", "q0023_0010"))),
+    perp_control = rowMeans(across(c("q0022_0001", "q0022_0003", "q0022_0004",
+                                           "q0023_0001", "q0023_0002", "q0023_0003"))),
+    perp_agr_fisica = rowMeans(across(c("q0023_0004", "q0022_0005", "q0022_0006"))))
+```
+
+
+
+
+## limpieza
+
+```{r}
+subdata_anlz_filtrado <- subdata_anlz|>
+  filter(q0018 == 1 & q0019 == 1)|>
+  filter(if_all(c("q0015_0001": "q0015_0005", "q0020_0001":"q0020_0010", "q0021_0001":"q0021_0010", "q0022_0001":"q0022_0010", "q0023_0001":"q0023_0010"),
+                ~ . != 0 #Prefiero no responder y valores perdidos
+                )
+  )
+  
+```
+
+# Análisis Cluster
+
+## Victimización
+
+
+```{r}
+vic_factores<-subdata_anlz_filtrado|>
+  select(vict_agr_verbal, vict_agr_sexual, vict_control, vict_agr_fisica)
+
+vic_fac_scaled<-scale(vic_factores)
+```
+
+```{r}
+d <- dist(vic_fac_scaled, method = "euclidean")
+hc <- hclust(d, method = "ward.D2")
+plot(hc)
+```
+
+```{r}
+fviz_nbclust(vic_fac_scaled, kmeans,  method =  "wss")
+fviz_nbclust(vic_fac_scaled, kmeans,  method =  "silhouette")
+fviz_nbclust(vic_fac_scaled, kmeans,  method =  "gap_stat")
+```
+
+
+```{r}
+set.seed(123) # para reproducibilidad
+kmeans_result <- kmeans(vic_fac_scaled, centers = 2, nstart = 25)
+```
+
+```{r}
+subdata_anlz_filtrado$cluster_vic <- factor(kmeans_result$cluster,
+                                              levels = c(1,2),
+                                              labels = c("altos", "bajos"))
+```
+
+```{r}
+kmeans_result$cluster <- subdata_anlz_filtrado$cluster_vic
+```
+
+### Gráfico
+
+```{r}
+fviz_cluster(kmeans_result, 
+             data = vic_fac_scaled,
+             geom = "point",
+             ellipse.type = "convex", # Concentration ellipse
+             repel = F, # Avoid label overplotting (slow)
+             show.clust.cent = FALSE, ggtheme = theme_minimal())+
+  labs(title = "Agrupamiento de casos según factores de victimización")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.minor = element_blank(),  # quita grillas menores
+        panel.grid.major = element_line(color = "grey85"), # opcional
+        axis.line = element_line(color = "black"),  # líneas de ejes visibles
+        axis.ticks = element_line(color = "black")) # agrega las marcas en los ejes
+```
+
+
+
+### Promedios
+
+```{r}
+aggregate(subdata_anlz_filtrado[, c("vict_agr_verbal", "vict_agr_fisica", "vict_agr_sexual", "vict_control")], 
+          by = list(subdata_anlz_filtrado$cluster_vic), 
+          FUN = mean)
+```
+
+
+```{r}
+tab_1<-subdata_anlz_filtrado |>
+  apply_labels(cluster_vic = "Cluster de victimización",
+               vict_agr_verbal = "Victimización de agresión verbal",
+               vict_agr_fisica = "Victimización de agresión física",
+               vict_agr_sexual = "Victimización de agresión sexual",
+               vict_control = "Victimización de control")|>
+  tab_cells(vict_agr_verbal, vict_agr_fisica, vict_agr_sexual, vict_control)|>
+  tab_cols(cluster_vic)|>
+  tab_stat_mean(label = "")|>
+  tab_pivot()|>
+  tab_transpose()
+
+tab_1
+```
+
+
+## Perpetración
+
+```{r}
+per_factores<-subdata_anlz_filtrado|>
+  select(perp_agr_verbal, perp_agr_sexual, perp_control, perp_agr_fisica)
+
+per_fac_scaled<-scale(per_factores)
+```
+
+```{r}
+d <- dist(per_fac_scaled, method = "euclidean")
+hc <- hclust(d, method = "ward.D2")
+plot(hc)
+```
+
+```{r}
+fviz_nbclust(per_fac_scaled, kmeans,  method =  "wss")
+fviz_nbclust(per_fac_scaled, kmeans,  method =  "silhouette")
+fviz_nbclust(per_fac_scaled, kmeans,  method =  "gap_stat")
+```
+
+
+```{r}
+set.seed(123) # para reproducibilidad
+kmeans_result <- kmeans(per_fac_scaled, centers = 2, nstart = 25)
+```
+
+```{r}
+subdata_anlz_filtrado$cluster_per <- factor(kmeans_result$cluster,
+                                              levels = c(1,2),
+                                              labels = c("altos", "bajos"))
+```
+
+```{r}
+kmeans_result$cluster <- subdata_anlz_filtrado$cluster_per
+```
+
+### Gráfico
+
+```{r}
+fviz_cluster(kmeans_result, 
+             data = per_fac_scaled,
+             geom = "point",
+             ellipse.type = "convex", # Concentration ellipse
+             repel = F, # Avoid label overplotting (slow)
+             show.clust.cent = FALSE, ggtheme = theme_minimal())+
+  labs(title = "Agrupamiento de casos según factores de perpetracion")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.minor = element_blank(),  # quita grillas menores
+        panel.grid.major = element_line(color = "grey85"), # opcional
+        axis.line = element_line(color = "black"),  # líneas de ejes visibles
+        axis.ticks = element_line(color = "black")) # agrega las marcas en los ejes
+```
+
+
+### Promedios
+
+```{r}
+aggregate(subdata_anlz_filtrado[, c("perp_agr_verbal", "perp_agr_fisica", "perp_agr_sexual", "perp_control")], 
+          by = list(subdata_anlz_filtrado$cluster_per), 
+          FUN = mean)
+```
+
+```{r}
+tab_2<-subdata_anlz_filtrado |>
+  apply_labels(cluster_per = "Cluster de perpetración",
+               perp_agr_verbal = "perpetración de agresión verbal",
+               perp_agr_fisica = "perpetración de agresión física",
+               perp_agr_sexual = "perpetración de agresión sexual",
+               perp_control = "perpetración de control")|>
+  tab_cells(perp_agr_verbal, perp_agr_sexual, perp_control, perp_agr_fisica)|>
+  tab_cols(cluster_per)|>
+  tab_stat_mean(label = "")|>
+  tab_pivot()|>
+  tab_transpose()
+
+tab_2
+```
+
+
+# Cruces
+
+## Victimización
+
+### Sexo
+
+```{r}
+tab_3<-subdata_anlz_filtrado|>
+  apply_labels(
+    SEXO = "Sexo",
+    #SEXO_recod = c("Femenino" = 1,
+    #               "Masculino" = 0),
+    cluster_vic= "cluster de vitimización"#,
+    #cluster_mitos = c("Altos" = 1,
+     #                            "Bajos" = 2)
+    )|>
+  tab_cells(cluster_vic)|>
+  tab_cols(SEXO)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(SEXO, cluster_vic)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_vic), y = porcent, fill = SEXO)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "Sexo")
+```
+
+
+## Perpetración
+
+### Sexo
+
+```{r}
+tab_4<-subdata_anlz_filtrado|>
+  apply_labels(
+    SEXO = "Sexo",
+    #SEXO_recod = c("Femenino" = 1,
+    #               "Masculino" = 0),
+    cluster_per= "cluster de perpetración"#,
+    #cluster_mitos = c("Altos" = 1,
+     #                            "Bajos" = 2)
+    )|>
+  tab_cells(cluster_per)|>
+  tab_cols(SEXO)|>
+  tab_stat_cpct()|>
+  tab_pivot()
+```
+
+```{r}
+subdata_anlz_filtrado|>
+  group_by(SEXO, cluster_per)|>
+  summarise(cantidad = n())|>
+  mutate(porcent = cantidad/sum(cantidad)*100)|>
+  ggplot(aes(x = as_label(cluster_per), y = porcent, fill = SEXO)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = "Proporción", x = "Cluster", fill = "Sexo")
+```
+
+```{r}
+wb = createWorkbook()
+```
+
+```{r}
+lista <- list(tab_1, tab_2)
+sh = addWorksheet(wb, "cluster")
+xl_write(lista,wb,sh,
+         col_symbols_to_remove = "#")
+```
+
+```{r}
+lista <- list(tab_3, tab_4)
+sh = addWorksheet(wb, "cruces")
+xl_write(lista,wb,sh,
+         col_symbols_to_remove = "#")
+```
+
+```{r}
+saveWorkbook(wb, "tablas_cluster_subdata.xlsx", overwrite = TRUE)
+```

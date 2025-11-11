@@ -1,0 +1,118 @@
+---
+title: "Limpieza base"
+author: "alexandra Porras"
+date: "2025-10-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Limpieza Subdata
+```{r}
+library(haven)
+library(dplyr)
+library(tidyverse)
+```
+```{r}
+data<-haven::read_sav("Amor_romantico_data_PUCP_3.sav")
+```
+```{r}
+colnames(data)
+```
+```{r}
+subdata<- data|>
+  select(1:110)
+```
+```{r}
+str(subdata$q0018)
+str(subdata$q0019)
+```
+```{r}
+subdata<- subdata|>
+  filter(q0018==1 & q0019==1)
+#854 casos
+```
+
+##Grupos
+```{r}
+#Grupos de variables según el diseño de la encuesta
+mitos_amor <- c(paste0("q0013_000", 1:9), "q0013_0010",
+           paste0("q0014_000", 1:9), "q0014_0010")
+
+estereotipos_genero <- c(paste0("q0015_000", 1:5))
+
+tolerancia_violencia <- c(paste0("q0016_000",1:9), "q0016_0010",
+                          paste0("q0017_000", 1:9), "q0017_0010")
+
+tolerancia_viol_offline <- c(paste0("q0016_000",1:9), "q0016_0010")
+
+tolerancia_viol_online <- c(paste0("q0017_000", 1:9), "q0017_0010")
+
+victimizacion <- c(paste0("q0020_000", 1:9), "q0020_0010",
+                   paste0("q0021_000",1:9),"q0021_0010")
+
+victimizacion_offline <- c(paste0("q0020_000", 1:9), "q0020_0010")
+
+victimizacion_online <- c(paste0("q0021_000",1:9),"q0021_0010")
+
+perpetracion <- c(paste0("q0022_000", 1:9), "q0022_0010",
+                   paste0("q0023_000",1:9),"q0023_0010")
+
+perpetracion_offline <- c(paste0("q0022_000", 1:9), "q0022_0010")
+
+perpetracion_online <- c(paste0("q0023_000",1:9),"q0023_0010")
+```
+
+```{r}
+sum(is.na(subdata[, mitos_amor]))
+sum(is.na(subdata[, estereotipos_genero]))
+sum(is.na(subdata[, tolerancia_violencia]))
+sum(is.na(subdata[, victimizacion]))
+sum(is.na(subdata[, perpetracion]))
+```
+```{r}
+subdata|>
+  select(all_of(victimizacion))|>
+  filter(if_any(all_of(victimizacion), is.na))
+
+subdata|>
+  select(all_of(perpetracion))|>
+  filter(if_any(all_of(perpetracion), is.na))
+```
+
+```{r}
+subdata <- subdata |>
+  filter(!if_any(all_of(c(victimizacion, perpetracion)), is.na))
+#823 casos
+```
+
+```{r}
+# Junto a las inestigadoras se decidió excluir las siguientes variables del análisis
+variables_final <- setdiff(c(mitos_amor, estereotipos_genero, tolerancia_violencia, victimizacion, perpetracion),
+                           c("q0013_0003", "q0017_0009"))
+```
+
+## Limpieza enfoque 1
+```{r}
+# Sin "Prefiero no responder" en estereotipos, mitos, tolerancia, victimización y perpetración
+subdata_clean <- subdata |>
+  filter(!if_any(all_of(variables_final), ~ .x == 0))
+```
+
+```{r}
+write_sav(subdata_clean, "Amor_romantico_SUBDATA_PUCP.sav") #data con 526 casos
+```
+
+## Limpieza enfoque 2
+```{r}
+# Sin contar estereotipos
+variables_final <- setdiff(variables_final, c(estereotipos_genero,"q0013_0003", "q0017_0009"))
+
+subdata_clean2 <- subdata |>
+  filter(!if_any(all_of(variables_final), ~ .x == 0))
+```
+
+
+

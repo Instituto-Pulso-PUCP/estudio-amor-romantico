@@ -1,0 +1,4819 @@
+---
+title: "AFE Amor Romántico filtrado por relación"
+author: "Guillermo Soto"
+date: "2025-03-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(haven)
+library(tidyverse)
+library(psych)
+library(sjlabelled)
+library(expss)
+library(DT)
+library(htmltools)
+library(FactoMineR)
+library(factoextra)
+library(EGAnet)
+library(polycor)
+library(openxlsx)
+```
+
+```{r}
+data<-haven::read_sav("Amor_romantico_data_PUCP_3.sav")
+```
+
+
+
+# AFE con data filtrada
+
+```{r}
+data1<-data|>
+  filter(q0001 == 1)|>
+  filter(q0002 !=3)|>
+  filter(q0003 == 1)|>
+  filter(q0004 == 1)|>
+  filter(q0018 == 1)|> #¿Has tenido una relación afectiva y/o sexual alguna vez en la vida?
+  filter(q0019 == 1)|> #¿Y has tenido al menos una relación afectiva y/o sexual durante los últimos doce meses?
+  na.omit()
+```
+
+
+## mitos amor romántico
+
+```{r}
+AFE_data<-data1|>
+  select(q0013_0001:q0013_0010, q0014_0001:q0014_0010)|>
+  filter(if_all(c(q0013_0001:q0013_0010, q0014_0001:q0014_0010), ~ . != 0))
+```
+
+### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+### Número de factores
+
+Realizamos 4 pruebas
+
+#### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+#### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+
+
+#### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+#### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+### 2 factores
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+#### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+#### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+#### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+#### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+## mitos amor romántico q0013
+
+```{r}
+AFE_data<-data1|>
+  select(q0013_0001:q0013_0010)|>
+  filter(if_all(c(q0013_0001:q0013_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### mitos amor romántico q0014
+
+```{r}
+AFE_data<-data1|>
+  select(q0014_0001:q0014_0010)|>
+  filter(if_all(c(q0014_0001:q0014_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### tolerancia
+
+```{r}
+AFE_data<-data1|>
+  select(q0016_0001:q0016_0010, q0017_0001:q0017_0010)|>
+  filter(if_all(c(q0016_0001:q0016_0010, q0017_0001:q0017_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:5]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### tolerancia offline
+
+```{r}
+AFE_data<-data1|>
+  select(q0016_0001:q0016_0010)|>
+  filter(if_all(c(q0016_0001:q0016_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama (mejor)
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama (mejor)
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### tolerancia online
+
+```{r}
+AFE_data<-data1|>
+  select(q0017_0001:q0017_0010)|>
+  filter(if_all(c(q0017_0001:q0017_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores (explica Var cumulative)
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### Victimizacion
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0020_0001:q0020_0010, q0021_0001:q0021_0010)|>
+  filter(if_all(c(q0020_0001:q0020_0010, q0021_0001:q0021_0010), ~ . != 0))|>
+  na.omit()|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+
+```{r}
+
+
+cortest.bartlett(rho)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores (explica mejor)
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+### Victimizacion offline
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0020_0001:q0020_0010)|>
+  filter(if_all(c(q0020_0001:q0020_0010), ~ . != 0))|>
+  na.omit()|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+
+```{r}
+
+
+cortest.bartlett(rho)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### Victimizacion online
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0021_0001:q0021_0010)|>
+  filter(if_all(c(q0021_0001:q0021_0010), ~ . != 0))|>
+  na.omit()|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+
+```{r}
+
+
+cortest.bartlett(rho)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+## Dicotomizadas
+
+### Perpetracion
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0022_0001:q0022_0010, q0023_0001:q0023_0010)|>
+  filter(if_all(c(q0022_0001:q0022_0010, q0023_0001:q0023_0010 ), ~ . != 0))|>
+  mutate(across(starts_with("q0022_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  mutate(across(starts_with("q0023_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0022_0001:n_q0022_0010, n_q0023_0001:n_q0023_0010)
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+cortest.bartlett(rho, n = nrow(AFE_data))
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:5]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### Perpetracion offline
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0022_0001:q0022_0010)|>
+  filter(if_all(c(q0022_0001:q0022_0010), ~ . != 0))|>
+  mutate(across(starts_with("q0022_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0022_0001:n_q0022_0010)
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+cortest.bartlett(rho, n = nrow(AFE_data))
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### Perpetracion online
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0023_0001:q0023_0010)|>
+  filter(if_all(c(q0023_0001:q0023_0010), ~ . != 0))|>
+  mutate(across(starts_with("q0023_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0023_0001:n_q0023_0010)
+```
+
+Realizamos 4 pruebas
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(haven)
+library(tidyverse)
+library(psych)
+library(sjlabelled)
+library(expss)
+library(DT)
+library(htmltools)
+library(FactoMineR)
+library(factoextra)
+library(EGAnet)
+library(polycor)
+library(openxlsx)
+```
+
+```{r}
+data<-haven::read_sav("Amor_romantico_data_PUCP_1.sav")
+```
+
+```{r}
+data1<-data|>
+  filter(q0001 == 1)|>
+  filter(q0002 !=3)|>
+  filter(q0003 == 1)|>
+  filter(q0004 == 1)
+```
+
+## AFE
+
+### mitos amor romántico
+
+```{r}
+AFE_data<-data1|>
+  select(q0013_0001:q0013_0010, q0014_0001:q0014_0010)|>
+  filter(if_all(c(q0013_0001:q0013_0010, q0014_0001:q0014_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### tolerancia
+
+```{r}
+AFE_data<-data1|>
+  select(q0016_0001:q0016_0010, q0017_0001:q0017_0010)|>
+  filter(if_all(c(q0016_0001:q0016_0010, q0017_0001:q0017_0010), ~ . != 0))
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:5]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### tolerancia offline
+
+```{r}
+AFE_data<-data1|>
+  select(q0016_0001:q0016_0010)|>
+  filter(if_all(c(q0016_0001:q0016_0010), ~ . != 0))|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama (mejor)
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama (mejor)
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### tolerancia online
+
+```{r}
+AFE_data<-data1|>
+  select(q0017_0001:q0017_0010)|>
+  filter(if_all(c(q0017_0001:q0017_0010), ~ . != 0))|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores (explica Var cumulative)
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### Victimizacion
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0020_0001:q0020_0010, q0021_0001:q0021_0010)|>
+  filter(if_all(c(q0020_0001:q0020_0010, q0021_0001:q0021_0010), ~ . != 0))|>
+  na.omit()|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+
+```{r}
+
+
+cortest.bartlett(rho)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores (explica mejor)
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+### Victimizacion offline
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0020_0001:q0020_0010)|>
+  filter(if_all(c(q0020_0001:q0020_0010), ~ . != 0))|>
+  na.omit()|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+
+```{r}
+
+
+cortest.bartlett(rho)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+### Victimizacion online
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0021_0001:q0021_0010)|>
+  filter(if_all(c(q0021_0001:q0021_0010), ~ . != 0))|>
+  na.omit()|>
+  as_factor()
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-polychoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+n<-nrow(AFE_data)
+cortest.bartlett(rho, n)
+```
+
+
+```{r}
+
+
+cortest.bartlett(rho)
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+##### Diagrama
+
+```{r}
+fa.diagram(load)
+```
+
+
+## Dicotomizadas
+
+### Victimizacion
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0020_0001:q0020_0010, q0021_0001:q0021_0010)|>
+  filter(if_all(c(q0020_0001:q0020_0010, q0021_0001:q0021_0010 ), ~ . != 0))|>
+  mutate(across(starts_with("q0020_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  mutate(across(starts_with("q0021_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0020_0001:n_q0020_0010, n_q0021_0001:n_q0021_0010)
+```
+
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+cortest.bartlett(rho, n = nrow(AFE_data))
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:5]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### Perpetracion
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0022_0001:q0022_0010, q0023_0001:q0023_0010)|>
+  filter(if_all(c(q0022_0001:q0022_0010, q0023_0001:q0023_0010 ), ~ . != 0))|>
+  mutate(across(starts_with("q0022_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  mutate(across(starts_with("q0023_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0022_0001:n_q0022_0010, n_q0023_0001:n_q0023_0010)
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+cortest.bartlett(rho, n = nrow(AFE_data))
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 5 factores
+
+```{r}
+m1<-fa(rho, nfactors = 5, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 5, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 5, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:5]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### Perpetracion offline
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0022_0001:q0022_0010)|>
+  filter(if_all(c(q0022_0001:q0022_0010), ~ . != 0))|>
+  mutate(across(starts_with("q0022_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0022_0001:n_q0022_0010)
+```
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+```{r}
+#KMO
+KMO(rho)
+```
+
+```{r}
+cortest.bartlett(rho, n = nrow(AFE_data))
+```
+
+#### Número de factores
+
+Realizamos 4 pruebas
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+### Perpetracion online
+
+```{r}
+AFE_data<-data1|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  select(q0023_0001:q0023_0010)|>
+  filter(if_all(c(q0023_0001:q0023_0010), ~ . != 0))|>
+  mutate(across(starts_with("q0023_"),
+                ~ ifelse(. == 1, 0, 1),
+                .names = "n_{.col}"))|>
+  #as_factor()|>
+  na.omit()|>
+  select(n_q0023_0001:n_q0023_0010)
+```
+
+Realizamos 4 pruebas
+
+#### Pruebas
+
+```{r}
+matrix_cor<-tetrachoric(AFE_data)
+rho<-matrix_cor$rho
+cor.plot(rho, xlas = 2, cex.axis = 0.8)
+```
+
+##### autovalores
+
+```{r}
+ei<-eigen(rho)$values
+plot(ei,type="b",pch=20,col="blue")
+num_factores_kaiser <- sum(ei > 1)  # Contar cuántos autovalores son mayores a 1
+print(num_factores_kaiser)  # Mostrar número de factores sugeridos
+```
+
+##### Scree plot
+
+```{r}
+plot(ei, type="b", main="Scree Plot (Codo de Cattell)", xlab="Número de Factor", ylab="Autovalor")
+abline(h=1, col="red", lty=2)  # Línea de referencia en autovalor = 1
+```
+
+##### Parallel analysis
+
+```{r}
+fa.parallel(rho, main = "Parallel", fa ="fa", fm="minres")
+```
+
+##### Eganet
+
+```{r}
+EGAnet::EGA(AFE_data, corr = "auto", plot.EGA = TRUE)
+```
+
+#### 2 factores
+
+
+```{r}
+m1<-fa(rho, nfactors = 2, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 2, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+```{r}
+factorial <- fa(rho,nfactors = 2, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:2]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 3 factores
+
+```{r}
+m1<-fa(rho, nfactors = 3, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 3, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 3, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:3]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+#### 4 factores
+
+```{r}
+m1<-fa(rho, nfactors = 4, rotate = "none", fm="paf")
+m2<-fa(rho, nfactors = 4, rotate = "none", fm="minchi")
+
+#comunalidades
+
+c1 <- sort(m1$communality,decreasing = T)
+c2 <- sort(m2$communality,decreasing = T)
+head(cbind(c1,c2))
+
+# Unicidades
+
+u1 <- sort(m1$uniquenesses,decreasing = T)
+u2 <- sort(m2$uniquenesses,decreasing = T)
+head(cbind(u1,u2))
+```
+
+
+```{r}
+factorial <- fa(rho,nfactors = 4, rotate = "varimax", fm = "minres")
+print(factorial)
+```
+
+##### extracción y plot de factores
+
+```{r}
+print(factorial$loadings)
+```
+
+```{r}
+print(factorial$loadings,cutoff = 0.3)
+```
+
+```{r}
+load <- factorial$loadings[,1:4]
+```
+
+```{r}
+fa.diagram(load)
+```
+
+
+

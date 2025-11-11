@@ -1,0 +1,840 @@
+---
+title: "AFC_amor_romantico"
+author: "Guillermo Soto"
+date: "2025-05-20"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# Librerias
+
+```{r}
+library(corrplot)
+library(GGally)
+library(haven)
+library(tidyverse)
+library(psych)
+library(sjlabelled)
+library(expss)
+library(DT)
+library(htmltools)
+library(FactoMineR)
+library(factoextra)
+library(EGAnet)
+library(polycor)
+library(openxlsx)
+library(vcd)
+library(lavaan)
+library(GPArotation)
+library(semPlot)
+library(rmdformats)
+library(kableExtra)
+```
+
+```{r}
+data<-haven::read_sav("Amor_romantico_data_PUCP_2.sav")
+```
+
+
+```{r}
+subdata<-data|>
+  filter(q0001 == 1)|>
+  filter(q0002 !=3)|>
+  filter(q0003 == 1)|>
+  filter(q0004 == 1)|>
+  filter(q0018 == 1)|>
+  filter(q0019 == 1)|>
+  na.omit()
+```
+
+
+# AFC
+
+## Tolerancia (por trabajar)
+
+### Frecuencias
+
+```{r}
+
+as.datatable_widget(subdata|>tab_cells("|" = unvr(q0016_0001))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0001),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0002))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0002),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0003))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0003),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0004))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0004),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0005))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0005),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0006))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0006),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0007))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0007),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0008))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0008),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0009))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0009),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0016_0010))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0016_0010),total_row_position = "below")|>
+                      tab_pivot(stat_position="inside_columns")|>
+                      t()|>
+  set_caption("Tolerancia hacia la violencia offline"))
+```
+
+
+
+
+```{r}
+
+as.datatable_widget(subdata|>
+                      tab_cells("|" = unvr(q0017_0001))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0001),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0002))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0002),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0003))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0003),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0004))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0004),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0005))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0005),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0006))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0006),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0007))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0007),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0008))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0008),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0009))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0009),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0017_0010))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0017_0010),total_row_position = "below")|>
+                      tab_pivot(stat_position="inside_columns")|>
+                      t()|>
+  set_caption("Tolerancia hacia la violencia online"))
+```
+
+### Factorial confirmatorio
+
+```{r}
+# n = 708
+AFC_data<-subdata|>
+  dplyr::select(q0016_0001:q0016_0010, q0017_0001:q0017_0010)|>
+  filter(if_all(c(q0016_0001:q0016_0010, q0017_0001:q0017_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))
+```
+
+```{r}
+model_toler<-'MR1 =~q0016_0004+q0016_0007+q0016_0008+q0016_0008+q0016_0009+q0016_0010+q0017_0008+q0017_0010 
+MR2 = ~q0017_0004+q0017_0005+q0017_0006+q0017_0007+q0017_0009
+MR3 = ~q0017_0001+q0017_0002+q0017_0003
+MR4 = ~q0016_0001+q0016_0002+q0016_0003
+MR5 = ~q0016_0005+q0016_0006'
+```
+
+```{r}
+AFC_toler<- cfa(model_toler, 
+                  orthogonal = FALSE,
+                  data = AFC_data,
+                  estimator = "ULS",
+                  ordered = names(AFC_data))
+```
+
+```{r}
+summary(AFC_toler, fit.measures=T, standardized=T)
+```
+
+```{r}
+fitMeasures(AFC_toler, fit.measures = c("chisq", "df", "rmsea", "tli", "cfi", "nfi", "gfi"))
+```
+
+```{r}
+format(pchisq(457, 160, lower.tail = FALSE ), scientific = TRUE)
+```
+
+```{r}
+457/160
+```
+
+```{r}
+semPaths(AFC_toler, nCharNodes = 0, intercepts = F, edge.label.cex = 1.3, optimizeLatRes = T, groups = "lat", pastel = T, sizeInt = 5, edge.color = "black", esize = 5, label.prop = 0, sizeLat = 11, "std", layout = "circle3", exoVar = F)
+```
+
+## Victimización
+
+### Frecuencias
+
+```{r}
+as.datatable_widget(subdata|>
+  tab_cells("|" = unvr(q0020_0001))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0001),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0002))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0002),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0003))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0003),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0004))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0004),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0005))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0005),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0006))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0006),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0007))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0007),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0008))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0008),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0009))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0009),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0020_0010))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0020_0010),total_row_position = "below")|>
+  tab_pivot(stat_position="inside_columns")|>
+  t()|>
+  set_caption("Victimización offline"))
+
+```
+
+```{r}
+
+as.datatable_widget(subdata|>
+  tab_cells("|" = unvr(q0021_0001))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0001),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0002))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0002),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0003))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0003),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0004))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0004),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0005))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0005),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0006))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0006),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0007))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0007),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0008))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0008),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0009))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0009),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0021_0010))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0021_0010),total_row_position = "below")|>
+  tab_pivot(stat_position="inside_columns")|>
+  t()|>
+  set_caption("Victimización online"))
+```
+
+### Factorial confirmatorio
+
+```{r}
+# n = 784
+AFC_data<-subdata|>
+  dplyr::select(q0020_0001:q0020_0010, q0021_0001:q0021_0010, factor)|>
+  filter(if_all(c(q0020_0001:q0020_0010, q0021_0001:q0021_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))
+```
+
+Grupos: 
+- victimizacion sexual: "q0020_0007", "q0020_0008", "q0020_0009","q0020_0010","q0021_0008", "q0021_0009","q0021_0010"
+- victimizacion psicológica: "q0020_0002", "q0021_0005","q0021_0006", "q0021_0007"
+- victimizacion control: "q0020_0001","q0020_0003","q0020_0004", "q0021_0001", "q0021_0002", "q0021_0003"
+- victimizacion fisica: "q0020_0005", "q0020_0006","q0021_0004" 
+
+```{r}
+model_victim<-'victim_sexual =~q0020_0007+q0020_0008+q0020_0009+q0020_0010+q0021_0008+q0021_0009+q0021_0010 
+victim_psico = ~q0020_0002+q0021_0005+q0021_0006+q0021_0007
+victim_control = ~q0020_0001+q0020_0003+q0020_0004+q0021_0001+q0021_0002+q0021_0003
+victim_fisica = ~q0020_0005+q0020_0006+q0021_0004'
+```
+
+```{r}
+AFC_victim <- cfa(model_victim, 
+                  orthogonal = FALSE,
+                  data = AFC_data,
+                  #estimator = "WLSMVS",
+                  ordered = names(AFC_data))
+```
+
+```{r}
+summary(AFC_victim, fit.measures=T, standardized=T)
+```
+
+### Indicadores
+
+```{r}
+fitMeasures(AFC_victim, fit.measures = c("chisq", "df", "rmsea", "tli", "cfi", "nfi", "gfi"))
+```
+
+Ratio de verosimilitud de Chi-cuadrado (<0.05)
+
+```{r}
+format(pchisq(387.480, 164, lower.tail = FALSE ), scientific = TRUE)
+```
+
+Chi-cuadrado normado (2 a 3)
+
+```{r}
+387.480/164
+```
+
+### Manipulación
+
+```{r}
+semPaths(AFC_victim, nCharNodes = 0, intercepts = F, edge.label.cex = 1.3, optimizeLatRes = T, groups = "lat", pastel = T, sizeInt = 5, edge.color = "black", esize = 5, label.prop = 0, sizeLat = 11, "std", layout = "circle3", exoVar = F)
+```
+
+
+
+```{r}
+modindices(AFC_victim, sort = TRUE, maximum.number = 10)
+```
+
+### q0021_0009 en violencia fisica
+
+```{r}
+model_victim<-'victim_sexual =~q0020_0007+q0020_0008+q0020_0009+q0020_0010+q0021_0008+q0021_0010 
+victim_psico = ~q0020_0002+q0021_0005+q0021_0006+q0021_0007
+victim_control = ~q0020_0001+q0020_0003+q0020_0004+q0021_0001+q0021_0002+q0021_0003
+victim_fisica = ~q0020_0005+q0020_0006+q0021_0004+q0021_0009'
+```
+
+```{r}
+AFC_victim <- cfa(model_victim, 
+                  orthogonal = FALSE,
+                  data = AFC_data,
+                  #estimator = "WLSMVS",
+                  ordered = names(AFC_data))
+```
+
+```{r}
+summary(AFC_victim, fit.measures=T, standardized=T)
+```
+
+```{r}
+fitMeasures(AFC_victim, fit.measures = c("chisq", "df", "rmsea", "tli", "cfi", "nfi", "gfi"))
+```
+
+Ratio de verosimilitud de Chi-cuadrado (<0.05)
+
+```{r}
+format(pchisq(355.442, 164, lower.tail = FALSE ), scientific = TRUE)
+```
+
+Chi-cuadrado normado (2 a 3)
+
+```{r}
+355.442/164
+```
+
+```{r}
+semPaths(AFC_victim, nCharNodes = 0, intercepts = F, edge.label.cex = 1.3, optimizeLatRes = T, groups = "lat", pastel = T, sizeInt = 5, edge.color = "black", esize = 5, label.prop = 0, sizeLat = 11, "std", layout = "circle3", exoVar = F)
+```
+
+```{r}
+modindices(AFC_victim, sort = TRUE, maximum.number = 10)
+```
+
+### q0021_0009 en violencia psicológica
+
+```{r}
+model_victim<-'victim_sexual =~q0020_0007+q0020_0008+q0020_0009+q0020_0010+q0021_0008+q0021_0010 
+victim_psico = ~q0020_0002+q0021_0005+q0021_0006+q0021_0007+q0021_0009
+victim_control = ~q0020_0001+q0020_0003+q0020_0004+q0021_0001+q0021_0002+q0021_0003
+victim_fisica = ~q0020_0005+q0020_0006+q0021_0004'
+```
+
+```{r}
+AFC_victim <- cfa(model_victim, 
+                  orthogonal = FALSE,
+                  data = AFC_data,
+                  #estimator = "WLSMVS",
+                  ordered = names(AFC_data))
+```
+
+```{r}
+summary(AFC_victim, fit.measures=T, standardized=T)
+```
+
+```{r}
+fitMeasures(AFC_victim, fit.measures = c("chisq", "df", "rmsea", "tli", "cfi", "nfi", "gfi"))
+```
+
+Ratio de verosimilitud de Chi-cuadrado (<0.05)
+
+```{r}
+format(pchisq(363.665, 164, lower.tail = FALSE ), scientific = TRUE)
+```
+
+Chi-cuadrado normado (2 a 3)
+
+```{r}
+363.665/164
+```
+
+```{r}
+semPaths(AFC_victim, nCharNodes = 0, intercepts = F, edge.label.cex = 1.3, optimizeLatRes = T, groups = "lat", pastel = T, sizeInt = 5, edge.color = "black", esize = 5, label.prop = 0, sizeLat = 11, "std", layout = "circle3", exoVar = F)
+```
+
+```{r}
+modindices(AFC_victim, sort = TRUE, maximum.number = 10)
+```
+
+### q0021_0004 en violencia psicológica
+
+```{r}
+model_victim<-'victim_sexual =~q0020_0007+q0020_0008+q0020_0009+q0020_0010+q0021_0008+q0021_0010 
+victim_psico = ~q0020_0002+q0021_0005+q0021_0006+q0021_0007+q0021_0009+q0021_0004
+victim_control = ~q0020_0001+q0020_0003+q0020_0004+q0021_0001+q0021_0002+q0021_0003
+victim_fisica = ~q0020_0005+q0020_0006'
+```
+
+```{r}
+AFC_victim <- cfa(model_victim, 
+                  orthogonal = FALSE,
+                  data = AFC_data,
+                  #estimator = "WLSMVS",
+                  ordered = names(AFC_data))
+```
+
+```{r}
+summary(AFC_victim, fit.measures=T, standardized=T)
+```
+
+```{r}
+fitMeasures(AFC_victim, fit.measures = c("chisq", "df", "rmsea", "tli", "cfi", "nfi", "gfi"))
+```
+
+Ratio de verosimilitud de Chi-cuadrado (<0.05)
+
+```{r}
+format(pchisq(323.679, 164, lower.tail = FALSE ), scientific = TRUE)
+```
+
+Chi-cuadrado normado (2 a 3)
+
+```{r}
+323.679/164
+```
+
+```{r}
+semPaths(AFC_victim, nCharNodes = 0, intercepts = F, edge.label.cex = 1.3, optimizeLatRes = T, groups = "lat", pastel = T, sizeInt = 5, edge.color = "black", esize = 5, label.prop = 0, sizeLat = 11, "std", layout = "circle3", exoVar = F)
+```
+
+```{r}
+modindices(AFC_victim, sort = TRUE, maximum.number = 10)
+```
+
+## Perpetración
+
+### Frecuencias
+
+```{r}
+
+as.datatable_widget(subdata|>
+  tab_cells("|" = unvr(q0022_0001))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0001),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0002))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0002),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0003))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0003),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0004))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0004),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0005))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0005),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0006))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0006),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0007))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0007),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0008))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0008),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0009))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0009),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0022_0010))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0022_0010),total_row_position = "below")|>
+  tab_pivot(stat_position="inside_columns")|>
+  t()|>
+  set_caption("perpetracion offline"))
+```
+
+
+```{r}
+
+as.datatable_widget(subdata|>
+  tab_cells("|" = unvr(q0023_0001))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0001),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0002))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0002),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0003))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0003),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0004))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0004),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0005))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0005),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0006))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0006),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0007))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0007),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0008))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0008),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0009))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0009),total_row_position = "below")|>
+  tab_cells("|" = unvr(q0023_0010))|>
+  tab_weight(factor)|>
+  tab_stat_cpct(label=var_lab(q0023_0010),total_row_position = "below")|>
+  tab_pivot(stat_position="inside_columns")|>
+  if_na(0)|>
+  t()|>
+  set_caption("perpetracion online"))
+```
+
+### Factorial confirmatorio
+
+```{r}
+AFC_data<-subdata|>
+  dplyr::select(q0022_0001:q0022_0010, q0023_0001:q0023_0010)|>
+  filter(if_all(c(q0022_0001:q0022_0010, q0023_0001:q0023_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))
+```
+
+Grupos: 
+- perpetracion sexual: "q0022_0007", "q0022_0008", "q0022_0009","q0022_0010","q0023_0008", "q0023_0009","q0023_0010"
+- perpetracion psicológica: "q0022_0002", "q0023_0005","q0023_0006", "q0023_0007"
+- perpetracion control: "q0022_0001","q0022_0003","q0022_0004", "q0023_0001", "q0023_0002", "q0023_0003"
+- perpetracion fisica: "q0022_0005", "q0022_0006","q0023_0004"
+
+
+```{r}
+model_perpet<-'perpet_sexual =~q0022_0007+q0022_0008+q0022_0009+q0022_0010+q0023_0008+q0023_0009+q0023_0010 
+perpet_psico = ~q0022_0002+q0023_0005+q0023_0006+q0023_0007
+perpet_control = ~q0022_0001+q0022_0003+q0022_0004+q0023_0001+q0023_0002+q0023_0003
+perpet_fisica = ~q0022_0005+q0022_0006+q0023_0004'
+```
+
+```{r}
+AFC_perpet <- cfa(model_perpet, 
+                  orthogonal = FALSE,
+                  data = AFC_data,
+                  #estimator = "ULS",
+                  ordered = names(AFC_data))
+```
+
+```{r}
+summary(AFC_perpet, fit.measures=T, standardized=T)
+```
+
+```{r}
+fitMeasures(AFC_perpet, fit.measures = c("chisq", "df", "rmsea", "tli", "cfi", "nfi", "gfi"))
+```
+
+```{r}
+format(pchisq(1594.781, 164, lower.tail = FALSE ), scientific = TRUE)
+```
+
+```{r}
+1594.781/164
+```
+
+```{r}
+semPaths(AFC_perpet, nCharNodes = 0, intercepts = F, edge.label.cex = 1.3, optimizeLatRes = T, groups = "lat", pastel = T, sizeInt = 5, edge.color = "black", esize = 5, label.prop = 0, sizeLat = 11, "std", layout = "circle3", exoVar = F)
+```
+
+
+
+# Correlaciones 
+
+## Dicotómica vs continua
+
+### Mitos vs puntuación tolerancia
+
+```{r}
+
+subdata_1<-subdata|>
+  dplyr::select(q0016_0001:q0016_0010,
+                q0017_0001:q0017_0010,
+                q0013_0001_dicot:q0013_0010_dicot,
+                q0014_0001_dicot:q0014_0010_dicot)|>
+  filter(if_all(c(q0016_0001:q0016_0010, q0017_0001:q0017_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))|>
+  mutate(MR_1 = rowSums(across(c("q0016_0004", "q0016_0007", "q0016_0008", "q0016_0008",
+                                 "q0016_0009", "q0016_0010", "q0017_0008", "q0017_0010"))))|>
+  mutate(MR_2 = rowSums(across(c("q0017_0004","q0017_0005", "q0017_0006", "q0017_0007",
+                                 "q0017_0009"))))|>
+  mutate(MR_3 = rowSums(across(c("q0017_0001", "q0017_0002", "q0017_0003"))))|>
+  mutate(MR_4 = rowSums(across(c("q0016_0001", "q0016_0002", "q0016_0003"))))|>
+  mutate(MR_5 = rowSums(across(c("q0016_0005", "q0016_0006"))))|>
+  select(MR_1, MR_2, MR_3, MR_4, MR_5,
+         q0013_0001_dicot:q0013_0010_dicot,
+         q0014_0001_dicot:q0014_0010_dicot)|>
+  dplyr::mutate(across(
+    .cols = c(q0013_0001_dicot:q0013_0010_dicot, q0014_0001_dicot:q0014_0010_dicot),
+    .fns  = ~ dplyr::recode(., `2` = 1, `1` = 0)
+  ))
+```
+
+
+```{r}
+cor_point_biserial <- cor(subdata_1, method = "pearson") # Correlación punto-biserial
+cor_spearman <- cor(subdata_1, method = "spearman") # Correlación de Spearman
+```
+
+
+```{r}
+cor.plot(cor_point_biserial, xlas = 2 )
+cor.plot(cor_spearman, xlas = 2)
+```
+
+
+### Mitos vs puntuación Victimización
+
+```{r}
+subdata_2<-subdata|>
+  dplyr::select(q0020_0001:q0020_0010, 
+                q0021_0001:q0021_0010,
+                q0013_0001_dicot:q0013_0010_dicot,
+                q0014_0001_dicot:q0014_0010_dicot)|>
+  filter(if_all(c(q0020_0001:q0020_0010, q0021_0001:q0021_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))|>
+  mutate(vict_sex = rowSums(across(c("q0020_0007", "q0020_0008", "q0020_0009","q0020_0010","q0021_0008", "q0021_0009","q0021_0010"))))|>
+  mutate(vict_psi = rowSums(across(c("q0020_0002", "q0021_0005","q0021_0006", "q0021_0007"))))|>
+  mutate(vict_con = rowSums(across(c("q0020_0001","q0020_0003","q0020_0004", "q0021_0001", "q0021_0002", "q0021_0003"))))|>
+  mutate(vict_fis = rowSums(across(c("q0020_0005", "q0020_0006","q0021_0004"))))|>
+  select(vict_fis, vict_con, vict_psi, vict_sex, q0013_0001_dicot:q0013_0010_dicot,
+         q0014_0001_dicot:q0014_0010_dicot)|>
+  dplyr::mutate(across(
+    .cols = c(q0013_0001_dicot:q0013_0010_dicot, q0014_0001_dicot:q0014_0010_dicot),
+    .fns  = ~ dplyr::recode(., `2` = 1, `1` = 0)
+  ))
+```
+
+
+```{r}
+cor_point_biserial <- cor(subdata_2, method = "pearson") # Correlación punto-biserial
+cor_spearman <- cor(subdata_2, method = "spearman") # Correlación de Spearman
+```
+
+```{r}
+cor.plot(cor_point_biserial, xlas = 2 )
+cor.plot(cor_spearman, xlas = 2)
+```
+
+### Mitos vs puntuación Perpetracion
+
+```{r}
+subdata_3<-subdata|>
+  dplyr::select(q0022_0001:q0022_0010,
+                q0023_0001:q0023_0010,
+                q0013_0001_dicot:q0013_0010_dicot,
+                q0014_0001_dicot:q0014_0010_dicot)|>
+  filter(if_all(c(q0022_0001:q0022_0010, q0023_0001:q0023_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))|>
+  mutate(perp_sex = rowSums(across(c("q0022_0007", "q0022_0008", "q0022_0009","q0022_0010","q0023_0008", "q0023_0009","q0023_0010"))))|>
+  mutate(perp_psi = rowSums(across(c("q0022_0002", "q0023_0005","q0023_0006", "q0023_0007"))))|>
+  mutate(perp_con = rowSums(across(c("q0022_0001","q0022_0003","q0022_0004", "q0023_0001", "q0023_0002", "q0023_0003"))))|>
+  mutate(perp_fis = rowSums(across(c("q0022_0005", "q0022_0006","q0023_0004"))))|>
+  select(perp_fis, perp_con, perp_psi, perp_sex, q0013_0001_dicot:q0013_0010_dicot,
+         q0014_0001_dicot:q0014_0010_dicot)|>
+  dplyr::mutate(across(
+    .cols = c(q0013_0001_dicot:q0013_0010_dicot, q0014_0001_dicot:q0014_0010_dicot),
+    .fns  = ~ dplyr::recode(., `2` = 1, `1` = 0)
+  ))
+```
+
+
+```{r}
+cor_point_biserial <- cor(subdata_3, method = "pearson") # Correlación punto-biserial
+cor_spearman <- cor(subdata_3, method = "spearman") # Correlación de Spearman
+```
+
+```{r}
+cor.plot(cor_point_biserial, xlas = 2 )
+cor.plot(cor_spearman, xlas = 2)
+```
+
+
+
+
+### Esteretipos vs puntuación tolerancia
+
+```{r}
+as.datatable_widget(subdata|>tab_cells("|" = unvr(q0015_0001))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0015_0001),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0015_0002))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0015_0002),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0015_0003))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0015_0003),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0015_0004))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0015_0004),total_row_position = "below")|>
+                      tab_cells("|" = unvr(q0015_0005))|>
+                      tab_weight(factor)|>
+                      tab_stat_cpct(label=var_lab(q0015_0005),total_row_position = "below")|>
+                      tab_pivot(stat_position="inside_columns")|>
+                      t()|>
+  set_caption("Tolerancia hacia la violencia offline"))
+```
+
+
+```{r}
+
+subdata_4<-subdata|>
+  dplyr::select(q0016_0001:q0016_0010,
+                q0017_0001:q0017_0010,
+                q0015_0001_dicot:q0015_0005_dicot)|>
+  filter(if_all(c(q0016_0001:q0016_0010, q0017_0001:q0017_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))|>
+  mutate(MR_1 = rowSums(across(c("q0016_0004", "q0016_0007", "q0016_0008", "q0016_0008",
+                                 "q0016_0009", "q0016_0010", "q0017_0008", "q0017_0010"))))|>
+  mutate(MR_2 = rowSums(across(c("q0017_0004","q0017_0005", "q0017_0006", "q0017_0007",
+                                 "q0017_0009"))))|>
+  mutate(MR_3 = rowSums(across(c("q0017_0001", "q0017_0002", "q0017_0003"))))|>
+  mutate(MR_4 = rowSums(across(c("q0016_0001", "q0016_0002", "q0016_0003"))))|>
+  mutate(MR_5 = rowSums(across(c("q0016_0005", "q0016_0006"))))|>
+  select(MR_1, MR_2, MR_3, MR_4, MR_5,
+         q0015_0001_dicot:q0015_0005_dicot)|>
+  dplyr::mutate(across(
+    .cols = c(q0015_0001_dicot:q0015_0005_dicot),
+    .fns  = ~ dplyr::recode(., `2` = 1, `1` = 0)
+  ))
+```
+
+```{r}
+cor_point_biserial <- cor(subdata_4, method = "pearson") # Correlación punto-biserial
+cor_spearman <- cor(subdata_4, method = "spearman") # Correlación de Spearman
+```
+
+```{r}
+cor.plot(cor_point_biserial, xlas = 2 )
+cor.plot(cor_spearman, xlas = 2)
+```
+
+### Estereotipos vs puntuación Victimización
+
+```{r}
+subdata_5<-subdata|>
+  dplyr::select(q0020_0001:q0020_0010, 
+                q0021_0001:q0021_0010,
+                q0015_0001_dicot:q0015_0005_dicot)|>
+  filter(if_all(c(q0020_0001:q0020_0010, q0021_0001:q0021_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))|>
+  mutate(vict_sex = rowSums(across(c("q0020_0007", "q0020_0008", "q0020_0009","q0020_0010","q0021_0008", "q0021_0009","q0021_0010"))))|>
+  mutate(vict_psi = rowSums(across(c("q0020_0002", "q0021_0005","q0021_0006", "q0021_0007"))))|>
+  mutate(vict_con = rowSums(across(c("q0020_0001","q0020_0003","q0020_0004", "q0021_0001", "q0021_0002", "q0021_0003"))))|>
+  mutate(vict_fis = rowSums(across(c("q0020_0005", "q0020_0006","q0021_0004"))))|>
+  select(vict_fis, vict_con, vict_psi, vict_sex,
+         q0015_0001_dicot:q0015_0005_dicot)|>
+  dplyr::mutate(across(
+    .cols = c(q0015_0001_dicot:q0015_0005_dicot),
+    .fns  = ~ dplyr::recode(., `2` = 1, `1` = 0)
+  ))
+```
+
+
+```{r}
+cor_point_biserial <- cor(subdata_3, method = "pearson") # Correlación punto-biserial
+cor_spearman <- cor(subdata_3, method = "spearman") # Correlación de Spearman
+```
+
+```{r}
+cor.plot(cor_point_biserial, xlas = 2 )
+cor.plot(cor_spearman, xlas = 2)
+```
+
+### Estereotipos vs puntuación Perpetracion
+
+```{r}
+subdata_6<-subdata|>
+  dplyr::select(q0022_0001:q0022_0010,
+                q0023_0001:q0023_0010,
+                q0015_0001_dicot:q0015_0005_dicot)|>
+  filter(if_all(c(q0022_0001:q0022_0010, q0023_0001:q0023_0010), ~ . != 0))|>
+  mutate(across(everything(), ~ as.numeric(as.character(.))))|>
+  mutate(perp_sex = rowSums(across(c("q0022_0007", "q0022_0008", "q0022_0009","q0022_0010","q0023_0008", "q0023_0009","q0023_0010"))))|>
+  mutate(perp_psi = rowSums(across(c("q0022_0002", "q0023_0005","q0023_0006", "q0023_0007"))))|>
+  mutate(perp_con = rowSums(across(c("q0022_0001","q0022_0003","q0022_0004", "q0023_0001", "q0023_0002", "q0023_0003"))))|>
+  mutate(perp_fis = rowSums(across(c("q0022_0005", "q0022_0006","q0023_0004"))))|>
+  select(perp_fis, perp_con, perp_psi, perp_sex,
+         q0015_0001_dicot:q0015_0005_dicot)|>
+  dplyr::mutate(across(
+    .cols = c(q0015_0001_dicot:q0015_0005_dicot),
+    .fns  = ~ dplyr::recode(., `2` = 1, `1` = 0)
+  ))
+```
+
+
+```{r}
+cor_point_biserial <- cor(subdata_4, method = "pearson") # Correlación punto-biserial
+cor_spearman <- cor(subdata_4, method = "spearman") # Correlación de Spearman
+```
+
+```{r}
+cor.plot(cor_point_biserial, xlas = 2 )
+cor.plot(cor_spearman, xlas = 2)
+```
+
+
+
+
+

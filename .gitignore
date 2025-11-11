@@ -1,0 +1,17 @@
+
+*.spv
+*.tmp
+*.log
+
+~$*
+
+
+*.sav
+*.csv
+*.xlsx 
+
+*.pptx
+*.pdf
+*.html
+
+!docs/*
