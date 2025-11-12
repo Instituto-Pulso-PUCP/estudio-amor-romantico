@@ -13,7 +13,7 @@
 Los datos en bruto no están incluidos en este repositorio debido a consideraciones de confidencialidad y protección de información personal de los participantes. Para acceder a los datos o solicitar información adicional sobre el estudio, contactar a **Pulso PUCP:**  `PulsoPucp@pucp.edu.pe`
 
 ## Resultados del Estudio
-El informe final está disponible en este [enlace](https://pulso.pucp.edu.pe/publicaciones/cuanto-perdonan-los-y-las-jovenes-por-amor-mitos-sobre-el-amor-romantico-y-tolerancia-a-la-violencia-en-relaciones-sexoafectivas)
+El informe resultado de este estudio aún no se encuentra disponible.
 
 
 ---
